@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Лісові Квести">
+<meta name="theme-color" content="#10241a">
+<link rel="manifest" href="manifest.json">
 <title>Лісові Квести 🦊</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -70,6 +76,7 @@
     <div class="key"><b>Q</b>журнал</div>
   </div>
   <p style="font-size:14px;opacity:.85">Маркер над звірятком: <b>!</b> новий · <b>…</b> в процесі · <b>?</b> готово здати · <b>✓</b> виконано.</p>
+  <p style="font-size:13px;opacity:.7">📱 На весь екран: кнопка <b>⛶</b> у грі. На iPhone — «Поділитися» → «На екран Додому», і запускай з іконки.</p>
   <button class="btn" id="startBtn">🌿 Почати пригоду</button>
 </div>
 
@@ -94,6 +101,7 @@
   <div id="stick"><div id="knob"></div></div>
   <div class="tbtns">
     <div class="trow">
+      <div class="tbtn sm" id="btnFull">⛶</div>
       <div class="tbtn sm" id="btnSniff">Нюх</div>
       <div class="tbtn sm" id="btnLog">📜</div>
     </div>
@@ -843,13 +851,19 @@ function loop(now){ const dt=Math.min(0.05,(now-last)/1000); last=now; if(state=
 requestAnimationFrame(loop);
 
 //------------------------------------------------------------------ меню
-function tryFullscreen(){
-  if(!isTouchDevice) return;
-  const el=document.documentElement, req=el.requestFullscreen||el.webkitRequestFullscreen;
-  if(req){ try{ req.call(el); }catch(e){} }
+function enterFullscreen(){
+  const el=document.documentElement, req=el.requestFullscreen||el.webkitRequestFullscreen||el.msRequestFullscreen;
+  if(req){ try{ const r=req.call(el); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
   setTimeout(resize,300);
 }
+function tryFullscreen(){ if(isTouchDevice) enterFullscreen(); }
+function toggleFullscreen(){
+  const d=document, fs=d.fullscreenElement||d.webkitFullscreenElement;
+  if(fs){ (d.exitFullscreen||d.webkitExitFullscreen||function(){}).call(d); setTimeout(resize,300); }
+  else enterFullscreen();
+}
 document.addEventListener('fullscreenchange',()=>setTimeout(resize,100));
+document.addEventListener('webkitfullscreenchange',()=>setTimeout(resize,100));
 function startGame(){ state='play'; startTime=performance.now(); spawnAmbient('wolf',12,460); spawnAmbient('boar',5,560);
   document.getElementById('titleScreen').classList.add('hidden'); document.getElementById('winScreen').classList.add('hidden');
   try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){}
@@ -898,6 +912,7 @@ window.addEventListener('keydown',e=>{ if(state==='title'&&(e.key==='Enter'||e.k
   holdBtn('btnAct',()=>{ justPressed['e']=true; });
   holdBtn('btnLog',()=>{ justPressed['q']=true; });
   holdBtn('btnSniff',()=>{ keys['shift']=true; }, ()=>{ keys['shift']=false; });
+  holdBtn('btnFull',()=>{ toggleFullscreen(); });
 
   // не дати сторінці прокручуватись під час гри
   document.addEventListener('touchmove',e=>{ if(state==='play'||state==='dialog') e.preventDefault(); },{passive:false});

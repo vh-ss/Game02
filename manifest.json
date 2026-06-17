@@ -1,0 +1,10 @@
+{
+  "name": "Лісові Квести",
+  "short_name": "Лісові Квести",
+  "description": "Топ-даун пригода про тварин — врятуй лісове свято",
+  "display": "fullscreen",
+  "background_color": "#10241a",
+  "theme_color": "#10241a",
+  "start_url": "./",
+  "scope": "./"
+}
