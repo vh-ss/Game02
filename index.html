@@ -42,6 +42,16 @@
   .tbtn.sm { width:62px; height:62px; font-size:13px; color:#1e3a26;
     background:linear-gradient(#cfe7d2,#a9d3b0); box-shadow:0 4px 0 #6f9f78; }
   .tbtn.sm:active { box-shadow:0 1px 0 #6f9f78; }
+  /* екран підвищення рівня */
+  .cards { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:16px; max-width:660px; padding:0 12px; }
+  .card { width:180px; background:rgba(255,255,255,.10); border:2px solid rgba(255,255,255,.22); border-radius:16px;
+    padding:16px 12px; cursor:pointer; position:relative; transition:transform .08s, background .1s, border-color .1s; -webkit-tap-highlight-color:transparent; }
+  .card:hover { transform:translateY(-3px); background:rgba(255,255,255,.18); border-color:#ffd23f; }
+  .card:active { transform:translateY(0); }
+  .card .ci { font-size:40px; line-height:1; }
+  .card .cn { font-weight:bold; font-size:17px; margin:10px 0 4px; color:#ffe27a; }
+  .card .cd { font-size:13px; color:#dfeede; line-height:1.3; }
+  .card .ck { position:absolute; top:8px; right:11px; font-size:12px; opacity:.45; }
 </style>
 </head>
 <body>
@@ -50,7 +60,8 @@
 <div id="titleScreen" class="overlay">
   <h1><span class="emoji">🦊</span> Лісові Квести</h1>
   <p>Ти — лисичка Руда. У великому чарівному лісі біда, а ще завелися дикі звірі — <b>вовки 🐺</b> та <b>кабани 🐗</b>!
-     Збирай, рятуй, кріпи дружбу й відбивайся хвостиком — і врятуй лісове свято.</p>
+     Збирай, рятуй, кріпи дружбу й відбивайся хвостиком — і врятуй лісове свято.
+     За перемоги над хижаками лисичка <b>зростає в рівні</b> й обирає нові хисти.</p>
   <div class="keys">
     <div class="key"><b>W A S D</b>рух</div>
     <div class="key"><b>Space</b>удар хвостиком</div>
@@ -71,6 +82,13 @@
 </div>
 
 <div id="credit">Лісові Квести · одна лисичка, багато друзів</div>
+
+<div id="levelScreen" class="overlay hidden">
+  <h1 style="font-size:clamp(28px,5vw,52px)">⭐ Рівень <span id="lvlNum">2</span>!</h1>
+  <p>Лисичка стала сильнішою. Обери новий хист:</p>
+  <div id="lvlCards" class="cards"></div>
+  <p style="font-size:13px;opacity:.7;margin-top:14px">Натисни картку або клавішу 1 / 2 / 3</p>
+</div>
 
 <div id="touchControls">
   <div id="stick"><div id="knob"></div></div>
@@ -93,8 +111,12 @@
 //==================================================================
 const canvas=document.getElementById('game'), ctx=canvas.getContext('2d');
 let VW=0,VH=0,DPR=Math.min(window.devicePixelRatio||1,2);
+const isTouchDevice=('ontouchstart' in window)||navigator.maxTouchPoints>0||(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches);
+let ZOOM=1;                       // масштаб камери (на мобільному < 1 — видно більше)
+function vwz(){ return VW/ZOOM; } function vhz(){ return VH/ZOOM; }
 function resize(){ VW=window.innerWidth; VH=window.innerHeight; canvas.width=VW*DPR; canvas.height=VH*DPR;
-  canvas.style.width=VW+'px'; canvas.style.height=VH+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  canvas.style.width=VW+'px'; canvas.style.height=VH+'px'; ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(isTouchDevice){ ZOOM=Math.max(0.5,Math.min(1, VW/640)); } else { ZOOM=1; } }
 window.addEventListener('resize',resize); resize();
 
 //------------------------------------------------------------------ світ
@@ -135,7 +157,8 @@ function tileAt(x,y){ const c=Math.floor(x/TILE),r=Math.floor(y/TILE); if(r<0||r
 
 const REACH=66; // дальність удару (вдвічі більша за попередню)
 const player={ x:START.x,y:START.y,r:13,speed:2.7,face:1,moving:false,anim:0,
-  hp:6,maxHp:6,iframes:0,atkTimer:0,atkDur:0.2,atkCd:0,swingId:0,regenT:0 };
+  hp:6,maxHp:6,iframes:0,atkTimer:0,atkDur:0.2,atkCd:0,swingId:0,regenT:0,
+  dmg:1,reach:REACH,atkCdMax:0.38,regenEvery:7,iHit:1.0,level:1,xp:0,xpNext:20 };
 reserve(player.x,player.y,90);
 npcDefs.forEach(n=>reserve(n.x,n.y,80)); reserve(cage.x,cage.y,70);
 
@@ -181,7 +204,7 @@ const quests={
       {kind:'collect',need:'acorn',amount:8,nag:'Ще шукаю жолуді — треба <b>8 🌰</b> (захід).',
         cont:['Смакота! Дякую.','А ще <b>6 ягід 🫐</b> з півдня — на святковий пиріг?']},
       {kind:'collect',need:'berry',amount:6,nag:'Для пирога бракує ягід — <b>6 🫐</b> (південь).'}],
-    done:['Ягідки чудові! Кошик повний. Дякую, Рудо! 😊'] },
+    done:['Ягідки чудові! Кошик повний. Дякую, Рудо! 😊','Ой, а ти подужчала! Бий лісових хижаків — і зростатимеш у силі. 💪'] },
 
   bear:{ giver:'bear', state:'new', stageIdx:0,
     intro:['Бурр! Оси-злодійки крадуть мій святковий мед!','Розжени <b>5 ос 🐝</b> — бий хвостиком (Space).','А тоді поможеш із медом.'],
@@ -260,17 +283,18 @@ function makeEnemy(type,x,y,boss){ const s=ESTATS[type];
     drop:s.drop,boss:boss||s.boss,alive:true,t:Math.random()*6,hit:-1,kx:0,ky:0,face:1,
     wx:x,wy:y,wt:0}; }
 function spawnGroup(sp,npc){ const cx=sp.rel?npc.x:sp.at[0], cy=sp.rel?npc.y-20:sp.at[1];
-  for(let i=0;i<sp.count;i++){ const a=i/sp.count*6.283, x=cx+Math.cos(a)*130+(Math.random()-.5)*60, y=cy+Math.sin(a)*130+(Math.random()-.5)*60;
+  const R=sp.rel?300:60;   // далі від гравця/НПС
+  for(let i=0;i<sp.count;i++){ const a=i/sp.count*6.283+Math.random()*0.6, x=cx+Math.cos(a)*R+(Math.random()-.5)*90, y=cy+Math.sin(a)*R+(Math.random()-.5)*90;
     enemies.push(makeEnemy(sp.enemy,clamp(x,60,WORLD_W-60),clamp(y,60,WORLD_H-60),sp.boss)); } }
-function spawnAmbientWolves(n){
+function spawnAmbient(type,n,minStart){
   let made=0,tries=0;
-  while(made<n && tries<400){ tries++;
+  while(made<n && tries<700){ tries++;
     const x=120+Math.random()*(WORLD_W-240), y=120+Math.random()*(WORLD_H-240);
     if(tileAt(x,y)===2) continue;
-    if(Math.hypot(x-START.x,y-START.y)<420) continue; // не біля старту
-    let okNpc=true; for(const nd of npcDefs) if(Math.hypot(x-nd.x,y-nd.y)<220) okNpc=false;
+    if(Math.hypot(x-START.x,y-START.y)<minStart) continue; // не біля старту
+    let okNpc=true; for(const nd of npcDefs) if(Math.hypot(x-nd.x,y-nd.y)<240) okNpc=false;
     if(!okNpc) continue;
-    const w=makeEnemy('wolf',x,y); w.wx=x; w.wy=y; enemies.push(w); made++; }
+    enemies.push(makeEnemy(type,x,y)); made++; }
 }
 
 //------------------------------------------------------------------ ввід
@@ -340,7 +364,7 @@ function cageInteract(){
 }
 function checkWin(){ if(allDone()&&dialog){ dialog.lines=dialog.lines.concat(['',' ✨ Усі друзі врятовані! Свято! ✨']); dialog.final=true; } }
 function advanceDialog(){ if(!dialog) return; dialog.idx++;
-  if(dialog.idx>=dialog.lines.length){ const fin=dialog.final; dialog=null; state='play'; if(fin) winGame(); }
+  if(dialog.idx>=dialog.lines.length){ const fin=dialog.final; dialog=null; state='play'; if(fin) winGame(); else maybeLevelUp(); }
   else sfx(520,.05,'square',.05); }
 function winGame(){ state='win'; document.getElementById('winScreen').classList.remove('hidden');
   const s=Math.floor((performance.now()-startTime)/1000);
@@ -364,16 +388,16 @@ function update(dt){
   // удар хвостиком
   if(player.atkCd>0) player.atkCd-=dt;
   if(player.atkTimer>0) player.atkTimer-=dt;
-  if((pressed(' ')||pressed('j')) && player.atkCd<=0){ player.atkTimer=player.atkDur; player.atkCd=0.38; player.swingId++; sfx(200,.1,'square',.12); }
+  if((pressed(' ')||pressed('j')) && player.atkCd<=0){ player.atkTimer=player.atkDur; player.atkCd=player.atkCdMax; player.swingId++; sfx(200,.1,'square',.12); }
   if(player.atkTimer>0){ const f=player.face;
     for(const e of enemies){ if(!e.alive||e.hit===player.swingId) continue;
       const rx=(e.x-player.x)*f, ry=e.y-player.y;
-      if(rx>-10 && rx<REACH && Math.abs(ry)<38){
-        e.hp--; e.hit=player.swingId; const a=Math.atan2(e.y-player.y,e.x-player.x);
+      if(rx>-10 && rx<player.reach && Math.abs(ry)<38){
+        e.hp-=player.dmg; e.hit=player.swingId; const a=Math.atan2(e.y-player.y,e.x-player.x);
         e.kx=Math.cos(a)*9; e.ky=Math.sin(a)*9; sfx(170,.08,'square',.12);
         if(e.hp<=0){ e.alive=false; inv[e.tag]++;
           if(e.drop){ itemDefs.push({type:e.drop,x:e.x,y:e.y,got:false,bob:Math.random()*6}); }
-          sfx(110,.2,'sawtooth',.14);
+          gainXP(XPVAL[e.tag]||4); sfx(110,.2,'sawtooth',.14);
           showToast(e.boss?'🦇 Кажанище подолано!':enemyEmoji[e.tag]+' переможено'+(e.drop?'  ·  випало 🦷':'')); } }
     }
   }
@@ -386,7 +410,7 @@ function update(dt){
   // вороги
   if(player.iframes>0) player.iframes-=dt;
   player.regenT+=dt;
-  if(player.regenT>7 && player.hp<player.maxHp){ player.hp++; player.regenT=0; showToast('💛 відновлено сердечко'); }
+  if(player.regenT>player.regenEvery && player.hp<player.maxHp){ player.hp++; player.regenT=0; showToast('💛 відновлено сердечко'); }
   for(const e of enemies){ if(!e.alive) continue; e.t+=dt*6;
     const d=Math.hypot(player.x-e.x,player.y-e.y);
     let mx=0,my=0;
@@ -396,7 +420,7 @@ function update(dt){
     if(tileAt(nx,e.y)!==2) e.x=nx; if(tileAt(e.x,ny)!==2) e.y=ny;
     e.kx*=0.8; e.ky*=0.8; if(mx<-0.05)e.face=-1; else if(mx>0.05)e.face=1;
     e.x=clamp(e.x,40,WORLD_W-40); e.y=clamp(e.y,40,WORLD_H-40);
-    if(d<e.r+player.r && player.iframes<=0){ player.hp-=e.dmg; player.iframes=1.0; player.regenT=0; sfx(140,.2,'sawtooth',.16);
+    if(d<e.r+player.r && player.iframes<=0){ player.hp-=e.dmg; player.iframes=player.iHit; player.regenT=0; sfx(140,.2,'sawtooth',.16);
       const a=Math.atan2(player.y-e.y,player.x-e.x); player.x+=Math.cos(a)*18; player.y+=Math.sin(a)*18;
       if(player.hp<=0){ player.hp=player.maxHp; player.iframes=1.8; player.x=START.x; player.y=START.y; showToast('Ой! Перепочинь і спробуй знову 💛'); } }
   }
@@ -409,8 +433,9 @@ function update(dt){
   const pe=pressed('e');
   if(near&&pe) interact(near); else if(pe&&player.nearCage) cageInteract();
 
-  cam.x=clamp(player.x-VW/2,0,Math.max(0,WORLD_W-VW)); cam.y=clamp(player.y-VH/2,0,Math.max(0,WORLD_H-VH));
-  if(WORLD_W<VW)cam.x=(WORLD_W-VW)/2; if(WORLD_H<VH)cam.y=(WORLD_H-VH)/2;
+  const vw=vwz(),vh=vhz();
+  cam.x=clamp(player.x-vw/2,0,Math.max(0,WORLD_W-vw)); cam.y=clamp(player.y-vh/2,0,Math.max(0,WORLD_H-vh));
+  if(WORLD_W<vw)cam.x=(WORLD_W-vw)/2; if(WORLD_H<vh)cam.y=(WORLD_H-vh)/2;
   if(toastT>0) toastT-=dt;
   for(const n of npcs) n.bob+=dt*2; for(const it of itemDefs) it.bob+=dt*3;
 }
@@ -426,7 +451,8 @@ function clamp(v,a,b){ return v<a?a:v>b?b:v; }
 //==================================================================  МАЛЮВАННЯ
 function draw(){
   ctx.fillStyle='#3c7d4f'; ctx.fillRect(0,0,VW,VH);
-  ctx.save(); ctx.translate(-cam.x,-cam.y); drawGround();
+  const vw=vwz(),vh=vhz();
+  ctx.save(); ctx.scale(ZOOM,ZOOM); ctx.translate(-cam.x,-cam.y); drawGround();
   const ents=[];
   for(const it of itemDefs) if(!it.got) ents.push({y:it.y,k:'item',o:it});
   for(const d of decor) ents.push({y:d.y,k:'decor',o:d});
@@ -436,7 +462,7 @@ function draw(){
   ents.push({y:cage.y,k:'cage',o:cage}); ents.push({y:player.y,k:'player',o:player});
   ents.sort((a,b)=>a.y-b.y);
   const m=100;
-  for(const e of ents){ const o=e.o; if(o.x<cam.x-m||o.x>cam.x+VW+m||o.y<cam.y-m||o.y>cam.y+VH+m) continue;
+  for(const e of ents){ const o=e.o; if(o.x<cam.x-m||o.x>cam.x+vw+m||o.y<cam.y-m||o.y>cam.y+vh+m) continue;
     if(e.k==='item') drawItem(o); else if(e.k==='decor') drawDecor(o); else if(e.k==='tree') drawTree(o);
     else if(e.k==='enemy') drawEnemy(o); else if(e.k==='npc') drawNpc(o); else if(e.k==='cage') drawCage();
     else drawPlayer(); }
@@ -447,8 +473,8 @@ function draw(){
   drawHUD();
 }
 function drawGround(){
-  const c0=Math.max(0,Math.floor(cam.x/TILE)),c1=Math.min(COLS,Math.ceil((cam.x+VW)/TILE));
-  const r0=Math.max(0,Math.floor(cam.y/TILE)),r1=Math.min(ROWS,Math.ceil((cam.y+VH)/TILE));
+  const c0=Math.max(0,Math.floor(cam.x/TILE)),c1=Math.min(COLS,Math.ceil((cam.x+vwz())/TILE));
+  const r0=Math.max(0,Math.floor(cam.y/TILE)),r1=Math.min(ROWS,Math.ceil((cam.y+vhz())/TILE));
   for(let r=r0;r<r1;r++) for(let c=c0;c<c1;c++){ const t=grid[r][c],x=c*TILE,y=r*TILE;
     if(t===2){ ctx.fillStyle='#3f7fc0'; ctx.fillRect(x,y,TILE,TILE); }
     else if(t===4){ ctx.fillStyle='#e3d39a'; ctx.fillRect(x,y,TILE,TILE); }
@@ -457,7 +483,7 @@ function drawGround(){
       if(hash(c+9,r+3)>.82){ ctx.fillStyle='rgba(40,110,60,.4)'; ctx.fillRect(x+10,y+30,3,8); ctx.fillRect(x+16,y+28,3,10); ctx.fillRect(x+22,y+31,3,7);} } }
   for(let r=r0;r<r1;r++) for(let c=c0;c<c1;c++){ if(grid[r][c]===2&&hash(c+5,r+7)>.7){ ctx.fillStyle='rgba(255,255,255,.25)';
     ctx.beginPath(); ctx.ellipse(c*TILE+24,r*TILE+20,9,3,0,0,7); ctx.fill(); } }
-  for(const f of flowers){ if(f.x<cam.x-40||f.x>cam.x+VW+40||f.y<cam.y-40||f.y>cam.y+VH+40) continue;
+  for(const f of flowers){ if(f.x<cam.x-40||f.x>cam.x+vwz()+40||f.y<cam.y-40||f.y>cam.y+vhz()+40) continue;
     const cols=['#ff6f9c','#ffd23f','#fff','#b07bff']; ctx.fillStyle=cols[f.c];
     for(let i=0;i<5;i++){ const a=i/5*6.283; ctx.beginPath(); ctx.arc(f.x+Math.cos(a)*3,f.y+Math.sin(a)*3,2.2,0,7); ctx.fill(); }
     ctx.fillStyle='#ffb938'; ctx.beginPath(); ctx.arc(f.x,f.y,1.8,0,7); ctx.fill(); }
@@ -556,7 +582,7 @@ function drawFox(x,y,face,anim,atkP){ const bob=anim?Math.sin(anim)*2:0; shadow(
   // удар хвостиком (поверх) — змах ззаду наперед
   if(atkP>=0){ const a0=-2.5, a1=1.0, ang=a0+(a1-a0)*atkP;
     ctx.strokeStyle='rgba(255,255,255,'+(0.55*(1-atkP))+')'; ctx.lineWidth=9; ctx.lineCap='round';
-    ctx.beginPath(); ctx.arc(2,-1,REACH*0.72, a0, ang); ctx.stroke();
+    ctx.beginPath(); ctx.arc(2,-1,player.reach*0.72, a0, ang); ctx.stroke();
     ctx.save(); ctx.translate(2,2); ctx.rotate(ang);
     ctx.fillStyle='#e8702f'; ctx.beginPath(); ctx.moveTo(0,-6); ctx.quadraticCurveTo(34,-12,42,2); ctx.quadraticCurveTo(22,3,0,7); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(40,1,6,0,7); ctx.fill(); ctx.restore(); }
@@ -641,9 +667,13 @@ function drawHUD(){ const done=progressDone(), panelW=Math.min(VW-24,480);
   ctx.fillStyle='rgba(20,40,28,.72)'; roundRect(12,12,panelW,38,12); ctx.fill();
   ctx.fillStyle='#ffd23f'; ctx.font='bold 16px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText('🌟 Завдань виконано: '+done+' / '+TOTAL, 26, 36);
   const bx=300,bw=panelW-310; if(bw>40){ ctx.fillStyle='rgba(0,0,0,.3)'; roundRect(bx,22,bw,16,8); ctx.fill(); ctx.fillStyle='#7CFC68'; roundRect(bx,22,bw*done/TOTAL,16,8); ctx.fill(); }
-  for(let i=0;i<player.maxHp;i++){ const hx=22+i*22, hy=66, full=i<player.hp; ctx.fillStyle=full?'#ff5a6a':'rgba(255,255,255,.18)';
+  for(let i=0;i<player.maxHp;i++){ const hx=22+i*22, hy=64, full=i<player.hp; ctx.fillStyle=full?'#ff5a6a':'rgba(255,255,255,.18)';
     ctx.beginPath(); ctx.moveTo(hx,hy+6); ctx.bezierCurveTo(hx-8,hy-2,hx-5,hy-9,hx,hy-4); ctx.bezierCurveTo(hx+5,hy-9,hx+8,hy-2,hx,hy+6); ctx.fill(); }
-  if(inv.key>0){ ctx.font='16px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🗝️ ключ у тебе', 22, 96); }
+  // рівень + досвід
+  ctx.fillStyle='#ffe27a'; ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText('Рів. '+player.level, 22, 92);
+  ctx.fillStyle='rgba(0,0,0,.3)'; roundRect(82,82,130,11,5); ctx.fill();
+  ctx.fillStyle='#8fd0ff'; roundRect(82,82,130*Math.min(1,player.xp/player.xpNext),11,5); ctx.fill();
+  if(inv.key>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🗝️ ключ у тебе', 22, 116); }
   ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='12px Trebuchet MS'; ctx.fillText('Q — журнал · Space — удар хвостиком · Shift — понюхати', 22, VH-16);
   if(toastT>0&&toast){ const a=Math.min(1,toastT/0.4); ctx.globalAlpha=a; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
     const w=ctx.measureText(toast).width+40; ctx.fillStyle='rgba(20,40,28,.85)'; roundRect(VW/2-w/2,64,w,38,12); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(toast,VW/2,89); ctx.globalAlpha=1; ctx.textAlign='left'; }
@@ -683,13 +713,44 @@ function drawRichText(text,x,y,maxW){ const parts=[]; let bold=false,buf='';
   let cx=x,cy=y; for(const w of words){ ctx.font=(w.b?'bold ':'')+'17px Trebuchet MS'; const ww=ctx.measureText(w.t).width;
     if(cx+ww>x+maxW&&w.t.trim()!==''){ cx=x; cy+=24; } ctx.fillStyle=w.b?'#ffe27a':'#f0f6f1'; ctx.fillText(w.t,cx,cy); cx+=ww; } }
 
+//------------------------------------------------------------------ прокачка лисички
+const XPVAL={ wasp:3, wolf:6, boar:9, bat:25 };
+const UPGRADES=[
+  {icon:'❤️',name:'Міцне серце',desc:'+1 максимальне здоров’я',apply:()=>{ player.maxHp++; player.hp=Math.min(player.maxHp,player.hp+1); }},
+  {icon:'🌀',name:'Сильний удар',desc:'+1 шкода від удару хвостиком',apply:()=>{ player.dmg++; }},
+  {icon:'👟',name:'Прудкі лапки',desc:'+12% швидкість бігу',apply:()=>{ player.speed*=1.12; }},
+  {icon:'🦊',name:'Довгий хвіст',desc:'+18% дальність удару',apply:()=>{ player.reach*=1.18; }},
+  {icon:'⚡',name:'Швидкий удар',desc:'−15% перезарядка удару',apply:()=>{ player.atkCdMax*=0.85; }},
+  {icon:'💛',name:'Жвавість',desc:'швидше відновлюються сердечка',apply:()=>{ player.regenEvery=Math.max(2.5,player.regenEvery-1.6); }},
+  {icon:'🛡️',name:'Загартування',desc:'довша невразливість після удару',apply:()=>{ player.iHit+=0.4; }},
+];
+let levelQueue=0;
+function gainXP(n){ player.xp+=n; let up=false;
+  while(player.xp>=player.xpNext){ player.xp-=player.xpNext; player.level++; player.xpNext=18+player.level*16; levelQueue++; up=true; }
+  if(up) maybeLevelUp(); }
+function maybeLevelUp(){ if(levelQueue>0 && state==='play') openLevelUp(); }
+function openLevelUp(){ state='levelup'; touch.active=false; touch.dx=0; touch.dy=0;
+  const pool=UPGRADES.slice();
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
+  const pick=pool.slice(0,3), box=document.getElementById('lvlCards'); box.innerHTML='';
+  document.getElementById('lvlNum').textContent=player.level;
+  pick.forEach((u,idx)=>{ const c=document.createElement('div'); c.className='card';
+    c.innerHTML='<div class="ci">'+u.icon+'</div><div class="cn">'+u.name+'</div><div class="cd">'+u.desc+'</div><div class="ck">'+(idx+1)+'</div>';
+    c.addEventListener('click',()=>chooseUpgrade(u)); box.appendChild(c); });
+  document.getElementById('levelScreen').classList.remove('hidden'); chime(); }
+function chooseUpgrade(u){ u.apply(); player.regenT=0; player.iframes=Math.max(player.iframes,0.6);
+  document.getElementById('levelScreen').classList.add('hidden'); levelQueue--;
+  if(levelQueue>0) openLevelUp(); else state='play'; sfx(660,.12,'triangle',.14); }
+window.addEventListener('keydown',e=>{ if(state==='levelup'){ const n=parseInt(e.key,10);
+  if(n>=1&&n<=3){ const cards=document.querySelectorAll('#lvlCards .card'); if(cards[n-1]) cards[n-1].click(); } } });
+
 //------------------------------------------------------------------ цикл
 let last=performance.now();
 function loop(now){ const dt=Math.min(0.05,(now-last)/1000); last=now; if(state==='play'||state==='dialog'){ update(dt); draw(); } requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 
 //------------------------------------------------------------------ меню
-function startGame(){ state='play'; startTime=performance.now(); spawnAmbientWolves(8);
+function startGame(){ state='play'; startTime=performance.now(); spawnAmbient('wolf',12,460); spawnAmbient('boar',5,560);
   document.getElementById('titleScreen').classList.add('hidden'); document.getElementById('winScreen').classList.add('hidden');
   try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){}
   sfx(660,.1,'triangle',.12); }
