@@ -857,6 +857,14 @@ function enterFullscreen(){
   setTimeout(resize,300);
 }
 function tryFullscreen(){ if(isTouchDevice) enterFullscreen(); }
+// найнадійніше: повний екран на першому ж дотику до екрана після старту
+let fsArmed=false;
+function armFirstTapFullscreen(){
+  if(!isTouchDevice || fsArmed) return; fsArmed=true;
+  const h=()=>{ enterFullscreen();
+    window.removeEventListener('pointerdown',h,true); window.removeEventListener('touchend',h,true); };
+  window.addEventListener('pointerdown',h,true); window.addEventListener('touchend',h,true);
+}
 function toggleFullscreen(){
   const d=document, fs=d.fullscreenElement||d.webkitFullscreenElement;
   if(fs){ (d.exitFullscreen||d.webkitExitFullscreen||function(){}).call(d); setTimeout(resize,300); }
@@ -867,7 +875,7 @@ document.addEventListener('webkitfullscreenchange',()=>setTimeout(resize,100));
 function startGame(){ state='play'; startTime=performance.now(); spawnAmbient('wolf',12,460); spawnAmbient('boar',5,560);
   document.getElementById('titleScreen').classList.add('hidden'); document.getElementById('winScreen').classList.add('hidden');
   try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){}
-  tryFullscreen();
+  tryFullscreen(); armFirstTapFullscreen();
   sfx(660,.1,'triangle',.12); }
 // тап/клік по варіанту відповіді в діалозі
 canvas.addEventListener('pointerdown',e=>{
