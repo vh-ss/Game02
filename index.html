@@ -843,9 +843,17 @@ function loop(now){ const dt=Math.min(0.05,(now-last)/1000); last=now; if(state=
 requestAnimationFrame(loop);
 
 //------------------------------------------------------------------ меню
+function tryFullscreen(){
+  if(!isTouchDevice) return;
+  const el=document.documentElement, req=el.requestFullscreen||el.webkitRequestFullscreen;
+  if(req){ try{ req.call(el); }catch(e){} }
+  setTimeout(resize,300);
+}
+document.addEventListener('fullscreenchange',()=>setTimeout(resize,100));
 function startGame(){ state='play'; startTime=performance.now(); spawnAmbient('wolf',12,460); spawnAmbient('boar',5,560);
   document.getElementById('titleScreen').classList.add('hidden'); document.getElementById('winScreen').classList.add('hidden');
   try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){}
+  tryFullscreen();
   sfx(660,.1,'triangle',.12); }
 // тап/клік по варіанту відповіді в діалозі
 canvas.addEventListener('pointerdown',e=>{
