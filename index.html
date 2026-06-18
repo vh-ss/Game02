@@ -828,7 +828,7 @@ function drawHUD(){ const done=progressDone(), panelW=Math.min(VW-24,480);
   ctx.fillStyle='#8fd0ff'; roundRect(82,82,130*Math.min(1,player.xp/player.xpNext),11,5); ctx.fill();
   if(inv.key>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🗝️ ключ у тебе', 22, 116); }
   else if(LV&&!LV.delivered){ ctx.font='13px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.textAlign='left';
-    const txt=LV.following?('🏡 Веди '+LV.name+' на галявину'):(order.every(isDone)?('🔎 Шукай '+LV.name+' у дуплах (?)'):('🐾 Допоможи звірятам, тоді знайдеш '+LV.name)); ctx.fillText(txt,22,116); }
+    const txt=LV.following?('🏡 Веди '+LV.acc+' на галявину'):(order.every(isDone)?('🔎 Шукай '+LV.acc+' у дуплах (?)'):('🐾 Допоможи звірятам, тоді знайдеш '+LV.acc)); ctx.fillText(txt,22,116); }
   ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='12px Trebuchet MS'; ctx.fillText('Q — журнал · Space — удар хвостиком · Shift — понюхати', 22, VH-16);
   if(toastT>0&&toast){ const a=Math.min(1,toastT/0.4); ctx.globalAlpha=a; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
     const w=ctx.measureText(toast).width+40; ctx.fillStyle='rgba(20,40,28,.85)'; roundRect(VW/2-w/2,64,w,38,12); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(toast,VW/2,89); ctx.globalAlpha=1; ctx.textAlign='left'; }
@@ -1055,13 +1055,13 @@ function L3quests(){ return {
     done:['Ти подужала Грізлі?! Тепер ліс безпечний для Емми.'] },
 }; }
 const LEVELS={
-  2:{ childKey:'elon', childName:'Елон', start:{x:1728,y:1380}, clearing:{x:1728,y:1520},
+  2:{ childKey:'elon', childName:'Елон', childAcc:'Елона', start:{x:1728,y:1380}, clearing:{x:1728,y:1520},
       npcs:[{id:'scout',spr:'squirrel',name:'Білка Шкрябка',x:640,y:560},{id:'owl',spr:'owl',name:'Сова Вухань',x:1728,y:380},{id:'bear',spr:'bear',name:'Ведмідь Гудзь',x:2820,y:620}],
       quests:L2quests, order:['scout','owl','bear'],
       items:[['acorn',12,780,820,900],['flower',12,1050,1300,900],['honey',8,2760,780,520],['berry',14,1500,2120,1100]],
       ambient:[['spider',10,460],['boar',4,560]],
       searchSpots:[[760,820],[2900,760],[2980,2180],[700,2180],[1500,2300],[2500,980]] },
-  3:{ childKey:'emma', childName:'Емма', start:{x:1728,y:1380}, clearing:{x:1728,y:1520},
+  3:{ childKey:'emma', childName:'Емма', childAcc:'Емму', start:{x:1728,y:1380}, clearing:{x:1728,y:1520},
       npcs:[{id:'rab',spr:'rabbit',name:'Зайчиха Лапка',x:600,y:2120},{id:'deer',spr:'deer',name:'Олень Рогач',x:980,y:1320},{id:'smith',spr:'smith',name:'Бобер Майстер',x:2240,y:2120},{id:'badger',spr:'badger',name:'Борсук Сивень',x:2360,y:1320}],
       quests:L3quests, order:['rab','deer','smith','badger'],
       items:[['flower',16,1500,1400,1900]],
@@ -1079,7 +1079,7 @@ function loadLevel(n){ const cfg=LEVELS[n]; curLevel=n;
   for(const id of cfg.order) order.push(id);
   cfg.items.forEach(it=>addItems(it[0],it[1],it[2],it[3],it[4]));
   cfg.ambient.forEach(a=>spawnAmbient(a[0],a[1],a[2]));
-  LV={ key:cfg.childKey, name:cfg.childName, clearing:cfg.clearing,
+  LV={ key:cfg.childKey, name:cfg.childName, acc:cfg.childAcc, clearing:cfg.clearing,
        spots:cfg.searchSpots.map(s=>({x:s[0],y:s[1],searched:false,isChild:false})),
        childFound:false, following:false, delivered:false, child:{x:0,y:0,anim:0} };
   LV.spots[Math.floor(Math.random()*LV.spots.length)].isChild=true;
@@ -1099,7 +1099,7 @@ function searchSpot(s){
   if(s.isChild){
     if(!order.every(isDone)){ openDialog(['Ти чуєш тихеньке схлипування з дупла...','— Я боюся виходити! Тут стільки звірів...','Спершу допоможи звірятам — і '+LV.name+' наважиться вийти.'],childNpc()); return; }
     LV.childFound=true; LV.following=true; LV.child.x=s.x; LV.child.y=s.y+12; LV.child.anim=0;
-    openDialog(['Ти знайшла '+LV.name+'! 🧒','— Дякую, лисичко Рудо! Я загубився...','Веди мене на 🐾 галявину звірів!'],childNpc(),{reward:true}); chime();
+    openDialog(['Ти знайшла '+LV.acc+'! 🧒','— Дякую, лисичко Рудо! Я загубився...','Веди мене на 🐾 галявину звірів!'],childNpc(),{reward:true}); chime();
   } else { s.searched=true; showToast('🕷️ Тут лише павуки — не той схов!'); sfx(160,.15,'sawtooth',.14);
     for(let i=0;i<2;i++) enemies.push(makeEnemy('spider',clamp(s.x+(Math.random()-.5)*50,60,WORLD_W-60),clamp(s.y+(Math.random()-.5)*50,60,WORLD_H-60))); }
 }
