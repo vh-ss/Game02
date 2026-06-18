@@ -137,6 +137,12 @@
   <button class="btn" id="againBtn">↺ Зіграти знову</button>
 </div>
 
+<div id="levelDoneScreen" class="overlay hidden">
+  <h1 id="lvDoneTitle">🎉 Рівень пройдено!</h1>
+  <p id="lvDoneText"></p>
+  <button class="btn" id="lvDoneBtn">▶ Далі</button>
+</div>
+
 <div id="credit">Лісові Квести · одна лисичка, багато друзів</div>
 
 <div id="levelScreen" class="overlay hidden">
@@ -452,15 +458,16 @@ function cageInteract(){
   openDialog(['*клац* Клітка відчинилась!','— Дякую, лисичко! — пискнуло зайченя й побігло до тата. 🐰💨'],rNpc,{reward:true});
   chime(); checkWin();
 }
-function checkWin(){ if(allDone()&&dialog){ dialog.lines=dialog.lines.concat(['',' ✨ Усі друзі врятовані! Свято! ✨']); dialog.final=true; } }
+function checkWin(){ if(curLevel===1&&allDone()&&dialog){ dialog.lines=dialog.lines.concat(['',' ✨ Усі друзі врятовані! Свято! ✨']); dialog.final=true; } }
 function advanceDialog(){ if(!dialog||dialog.choosing) return; dialog.idx++;
   if(dialog.idx>=dialog.lines.length){
     if(dialog.choices){ dialog.choosing=true; sfx(440,.08,'sine',.1); return; }
-    const fin=dialog.final; dialog=null; state='play'; if(fin) winGame(); else maybeLevelUp(); }
+    const fin=dialog.final; dialog=null; state='play'; if(fin) completeLevel(); else maybeLevelUp(); }
   else sfx(520,.05,'square',.05); }
 function pickChoice(i){ if(!dialog||!dialog.choices) return; const o=dialog.choices[i]; if(!o) return;
   justPressed['e']=false; const fn=o.pick; dialog=null; state='play'; sfx(560,.08,'square',.1); if(fn) fn(); }
 function winGame(){ state='win'; document.getElementById('winScreen').classList.remove('hidden');
+  document.getElementById('winText').innerHTML='Свято врятовано, а Елона та Емму повернуто додому! Усі звірята й діти в безпеці. Дякуючи тобі — у лісі знову мир, дружба і свято! 🎉';
   const s=Math.floor((performance.now()-startTime)/1000);
   document.getElementById('winTime').textContent=`Час пригоди: ${Math.floor(s/60)} хв ${(s%60).toString().padStart(2,'0')} с`; }
 
@@ -526,8 +533,11 @@ function update(dt){
   for(const n of npcs){ const d=Math.hypot(n.x-player.x,n.y-player.y); if(d<60&&d<nd){nd=d;near=n;} }
   player.nearNpc=near;
   player.nearCage=Math.hypot(cage.x-player.x,cage.y-player.y)<66 && !cage.freed;
+  let spot=null; if(LV&&!LV.childFound){ let sd=1e9; for(const s of LV.spots){ if(s.searched&&!s.isChild) continue;
+    const d=Math.hypot(s.x-player.x,s.y-player.y); if(d<74&&d<sd){sd=d;spot=s;} } }
   const pe=pressed('e');
-  if(near&&pe) interact(near); else if(pe&&player.nearCage) cageInteract();
+  if(near&&pe) interact(near); else if(pe&&player.nearCage) cageInteract(); else if(pe&&spot) searchSpot(spot);
+  childFollowDeliver(dt);
 
   const vw=vwz(),vh=vhz();
   cam.x=clamp(player.x-vw/2,0,Math.max(0,WORLD_W-vw)); cam.y=clamp(player.y-vh/2,0,Math.max(0,WORLD_H-vh));
@@ -558,21 +568,24 @@ function clamp(v,a,b){ return v<a?a:v>b?b:v; }
 function draw(){
   ctx.fillStyle='#3c7d4f'; ctx.fillRect(0,0,VW,VH);
   const vw=vwz(),vh=vhz();
-  ctx.save(); ctx.scale(ZOOM,ZOOM); ctx.translate(-cam.x,-cam.y); drawGround();
+  ctx.save(); ctx.scale(ZOOM,ZOOM); ctx.translate(-cam.x,-cam.y); drawGround(); drawLevelGround();
   const ents=[];
   for(const it of itemDefs) if(!it.got) ents.push({y:it.y,k:'item',o:it});
   for(const d of decor) ents.push({y:d.y,k:'decor',o:d});
   for(const s of solids) if(s.type==='tree') ents.push({y:s.y,k:'tree',o:s});
   for(const e of enemies) if(e.alive) ents.push({y:e.y,k:'enemy',o:e});
   for(const n of npcs) ents.push({y:n.y,k:'npc',o:n});
-  ents.push({y:cage.y,k:'cage',o:cage}); ents.push({y:player.y,k:'player',o:player});
+  if(curLevel===1) ents.push({y:cage.y,k:'cage',o:cage});
+  if(LV&&LV.childFound&&!LV.delivered) ents.push({y:LV.child.y,k:'child',o:LV.child});
+  ents.push({y:player.y,k:'player',o:player});
   ents.sort((a,b)=>a.y-b.y);
   const m=100;
   for(const e of ents){ const o=e.o; if(o.x<cam.x-m||o.x>cam.x+vw+m||o.y<cam.y-m||o.y>cam.y+vh+m) continue;
     if(e.k==='item') drawItem(o); else if(e.k==='decor') drawDecor(o); else if(e.k==='tree') drawTree(o);
     else if(e.k==='enemy') drawEnemy(o); else if(e.k==='npc') drawNpc(o); else if(e.k==='cage') drawCage();
-    else drawPlayer(); }
-  drawArch(); cageHint(); drawCompass();
+    else if(e.k==='child') drawChild(o); else drawPlayer(); }
+  if(curLevel===1) drawArch();
+  cageHint(); drawCompass();
   ctx.restore();
   const vg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.35,VW/2,VH/2,Math.max(VW,VH)*0.75);
   vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.28)'); ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
@@ -663,6 +676,7 @@ function drawEnemy(e){ const by=Math.sin(e.t)*2; shadow(e.x,e.y+e.r-2,e.r+2); ct
     ctx.restore();
     ctx.fillStyle='rgba(0,0,0,.55)'; roundRect(-28,-42,56,8,3); ctx.fill(); ctx.fillStyle='#ff2e1e'; roundRect(-28,-42,56*Math.max(0,e.hp/e.maxHp),8,3); ctx.fill();
     ctx.fillStyle='#ffd23f'; ctx.font='bold 12px Trebuchet MS'; ctx.textAlign='center'; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=3; ctx.strokeText('Вожак',0,-46); ctx.fillText('Вожак',0,-46); ctx.textAlign='left'; }
+  else drawBeast(e);
   ctx.restore(); }
 
 function drawCage(){ const x=cage.x,y=cage.y; shadow(x,y+16,22);
@@ -711,7 +725,7 @@ function drawFox(x,y,face,anim,atkP){ const bob=anim?Math.sin(anim)*2:0; shadow(
   ctx.restore(); }
 
 function drawNpc(n){ const bob=Math.sin(n.bob)*2; shadow(n.x,n.y+14,16); ctx.save(); ctx.translate(n.x,n.y+bob);
-  ({squirrel:drawSquirrel,rabbit:drawRabbit,bear:drawBear,owl:drawOwl,hedgehog:drawHedgehog,smith:drawSmith,deer:drawDeer,badger:drawBadger})[n.id](); ctx.restore();
+  drawNpcSprite(n); ctx.restore();
   const q=quests[n.id]; let mark,col='#ffd23f';
   if(q.state==='done'){ mark='✓'; col='#7CFC68'; }
   else if(q.type==='final'){ if(othersDone()){ mark=inv.flower>=q.finalNeed.amount?'?':'…'; col=inv.flower>=q.finalNeed.amount?'#7CFC68':'#ffd23f'; } else { mark='!'; } }
@@ -789,7 +803,8 @@ function enemyAliveOf(tag){ let b=null,bd=1e9; for(const e of enemies){ if(e.ali
 function drawCompass(){ let tgt=null,col,td=1e9;
   for(const id of order){ const q=quests[id]; if(q.stages&&q.state==='active'){ const st=curStage(q);
     if(st.kind==='defeat'&&inv[st.need]<st.amount){ const e=enemyAliveOf(st.need); if(e){ const d=Math.hypot(e.x-player.x,e.y-player.y); if(d<td){td=d;tgt=e;col='#ff7a6a';} } } } }
-  if(!tgt && quests.rabbit.state==='active'&&!cage.freed){ tgt=cage; col=inv.key>0?'#8fd0ff':'#b7c4cf'; td=Math.hypot(cage.x-player.x,cage.y-player.y); }
+  if(!tgt && quests.rabbit && quests.rabbit.state==='active'&&!cage.freed){ tgt=cage; col=inv.key>0?'#8fd0ff':'#b7c4cf'; td=Math.hypot(cage.x-player.x,cage.y-player.y); }
+  if(!tgt && LV&&LV.following){ tgt=LV.clearing; col='#ffd23f'; td=Math.hypot(LV.clearing.x-player.x,LV.clearing.y-player.y); }
   if(!tgt){ for(const n of npcs){ const q=quests[n.id]; if(q.state==='active'&&readyTurnIn(q)){ const d=Math.hypot(n.x-player.x,n.y-player.y); if(d<td){td=d;tgt=n;col='#7CFC68';} } } }
   if(keys['shift']){ const need=new Set();
     for(const id of order){ const q=quests[id]; if(q.stages&&q.state==='active'){ const st=curStage(q); if(st.kind==='collect') need.add(st.need); }
@@ -803,7 +818,7 @@ function drawCompass(){ let tgt=null,col,td=1e9;
 //------------------------------------------------------------------ HUD
 function drawHUD(){ const done=progressDone(), panelW=Math.min(VW-24,480);
   ctx.fillStyle='rgba(20,40,28,.72)'; roundRect(12,12,panelW,38,12); ctx.fill();
-  ctx.fillStyle='#ffd23f'; ctx.font='bold 16px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText('🌟 Завдань виконано: '+done+' / '+TOTAL, 26, 36);
+  ctx.fillStyle='#ffd23f'; ctx.font='bold 16px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText((curLevel>1?('Рів.'+curLevel+' · '):'🌟 ')+'Завдань: '+done+' / '+TOTAL, 26, 36);
   const bx=300,bw=panelW-310; if(bw>40){ ctx.fillStyle='rgba(0,0,0,.3)'; roundRect(bx,22,bw,16,8); ctx.fill(); ctx.fillStyle='#7CFC68'; roundRect(bx,22,bw*done/TOTAL,16,8); ctx.fill(); }
   for(let i=0;i<player.maxHp;i++){ const hx=22+i*22, hy=64, full=i<player.hp; ctx.fillStyle=full?'#ff5a6a':'rgba(255,255,255,.18)';
     ctx.beginPath(); ctx.moveTo(hx,hy+6); ctx.bezierCurveTo(hx-8,hy-2,hx-5,hy-9,hx,hy-4); ctx.bezierCurveTo(hx+5,hy-9,hx+8,hy-2,hx,hy+6); ctx.fill(); }
@@ -812,6 +827,8 @@ function drawHUD(){ const done=progressDone(), panelW=Math.min(VW-24,480);
   ctx.fillStyle='rgba(0,0,0,.3)'; roundRect(82,82,130,11,5); ctx.fill();
   ctx.fillStyle='#8fd0ff'; roundRect(82,82,130*Math.min(1,player.xp/player.xpNext),11,5); ctx.fill();
   if(inv.key>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🗝️ ключ у тебе', 22, 116); }
+  else if(LV&&!LV.delivered){ ctx.font='13px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.textAlign='left';
+    const txt=LV.following?('🏡 Веди '+LV.name+' на галявину'):(order.every(isDone)?('🔎 Шукай '+LV.name+' у дуплах (?)'):('🐾 Допоможи звірятам, тоді знайдеш '+LV.name)); ctx.fillText(txt,22,116); }
   ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='12px Trebuchet MS'; ctx.fillText('Q — журнал · Space — удар хвостиком · Shift — понюхати', 22, VH-16);
   if(toastT>0&&toast){ const a=Math.min(1,toastT/0.4); ctx.globalAlpha=a; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
     const w=ctx.measureText(toast).width+40; ctx.fillStyle='rgba(20,40,28,.85)'; roundRect(VW/2-w/2,64,w,38,12); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(toast,VW/2,89); ctx.globalAlpha=1; ctx.textAlign='left'; }
@@ -839,7 +856,7 @@ function drawQuestLog(){ const w=Math.min(420,VW-40), h=order.length*50+70, x=VW
 function drawDialog(){ const w=Math.min(640,VW-40),h=160,x=VW/2-w/2,y=VH-h-24;
   ctx.fillStyle='rgba(14,28,20,.94)'; roundRect(x,y,w,h,18); ctx.fill(); ctx.strokeStyle='rgba(255,210,63,.5)'; ctx.lineWidth=2; ctx.stroke();
   const n=dialog.npc; ctx.fillStyle='#ffd23f'; ctx.font='bold 19px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(n.name,x+108,y+34);
-  ctx.save(); ctx.translate(x+52,y+82); ctx.scale(1.3,1.3); ({squirrel:drawSquirrel,rabbit:drawRabbit,bear:drawBear,owl:drawOwl,hedgehog:drawHedgehog,smith:drawSmith,deer:drawDeer,badger:drawBadger})[n.id](); ctx.restore();
+  ctx.save(); ctx.translate(x+52,y+82); ctx.scale(1.3,1.3); drawNpcSprite(n); ctx.restore();
   ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.beginPath(); ctx.moveTo(x+100,y+16); ctx.lineTo(x+100,y+h-16); ctx.stroke();
   drawRichText(dialog.lines[dialog.idx]||'', x+116, y+62, w-140);
   if(dialog.choosing && dialog.choices){
@@ -893,6 +910,227 @@ function chooseUpgrade(u){ u.apply(); player.regenT=0; player.iframes=Math.max(p
 window.addEventListener('keydown',e=>{ if(state==='levelup'){ const n=parseInt(e.key,10);
   if(n>=1&&n<=3){ const cards=document.querySelectorAll('#lvlCards .card'); if(cards[n-1]) cards[n-1].click(); } } });
 
+//==================================================================  РІВНІ (Елон і Емма)
+const TOTAL_LEVELS=3;
+let curLevel=1, LV=null;
+
+// нові небезпечні звірі
+Object.assign(inv,{spider:0,snake:0,lynx:0,wolverine:0,hornet:0,tusker:0,vbat:0,direwolf:0,panther:0,grizzly:0});
+Object.assign(enemyEmoji,{spider:'🕷️',snake:'🐍',lynx:'🐱',wolverine:'🦡',hornet:'🐝',tusker:'🐗',vbat:'🦇',direwolf:'🐺',panther:'🐆',grizzly:'🐻'});
+Object.assign(enemyName,{spider:'павук',snake:'гадюка',lynx:'рись',wolverine:'росомаха',hornet:'шершень',tusker:'вепр-іклань',vbat:'кажан-вампір',direwolf:'лютововк',panther:'пантера',grizzly:'Грізлі-блукач'});
+Object.assign(ESTATS,{
+  spider:{r:11,hp:2,speed:2.3,dmg:1,aggro:300},
+  snake:{r:12,hp:4,speed:1.8,dmg:2,aggro:300},
+  lynx:{r:14,hp:5,speed:2.7,dmg:2,aggro:360},
+  wolverine:{r:16,hp:9,speed:1.8,dmg:2,aggro:300},
+  hornet:{r:10,hp:3,speed:2.5,dmg:1,aggro:340},
+  tusker:{r:19,hp:9,speed:1.7,dmg:3,aggro:300},
+  vbat:{r:13,hp:4,speed:2.2,dmg:1,aggro:340},
+  direwolf:{r:16,hp:7,speed:2.3,dmg:2,aggro:360,drop:'fang'},
+  panther:{r:15,hp:6,speed:2.9,dmg:2,aggro:380},
+  grizzly:{r:22,hp:18,speed:1.7,dmg:3,aggro:460,boss:true},
+});
+Object.assign(XPVAL,{spider:4,snake:6,lynx:8,wolverine:10,hornet:5,tusker:11,vbat:6,direwolf:10,panther:9,grizzly:42});
+
+// карта спрайтів НПС (за ключем spr або id)
+const NPC_SPRITE={squirrel:drawSquirrel,rabbit:drawRabbit,bear:drawBear,owl:drawOwl,hedgehog:drawHedgehog,smith:drawSmith,deer:drawDeer,badger:drawBadger,elon:drawElon,emma:drawEmma};
+function drawNpcSprite(n){ (NPC_SPRITE[n.spr||n.id]||drawSquirrel)(); }
+
+function drawElon(){ // хлопчик ~3 роки
+  ctx.fillStyle='#3a5fa0'; ctx.fillRect(-6,12,5,8); ctx.fillRect(2,12,5,8);
+  ctx.fillStyle='#d64f4f'; ctx.fillRect(-7,18,6,4); ctx.fillRect(2,18,6,4);
+  ctx.fillStyle='#ffd23f'; roundRect(-9,-2,18,16,7); ctx.fill();
+  ctx.fillStyle='#4a78c8'; roundRect(-9,5,18,11,6); ctx.fill();
+  ctx.fillStyle='#f6c8a0'; ctx.beginPath(); ctx.arc(0,-10,12,0,7); ctx.fill();
+  ctx.fillStyle='#7a4a25'; ctx.beginPath(); ctx.arc(0,-15,10,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#241812'; ctx.beginPath(); ctx.arc(-4,-10,1.9,0,7); ctx.arc(4,-10,1.9,0,7); ctx.fill();
+  ctx.fillStyle='rgba(255,120,120,.5)'; ctx.beginPath(); ctx.arc(-6,-6,2.4,0,7); ctx.arc(6,-6,2.4,0,7); ctx.fill();
+  ctx.strokeStyle='#9c5a3a'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.arc(0,-7,3,0.2,Math.PI-0.2); ctx.stroke(); }
+function drawEmma(){ // дівчинка ~7 років
+  ctx.fillStyle='#f6c8a0'; ctx.fillRect(-6,14,5,7); ctx.fillRect(2,14,5,7);
+  ctx.fillStyle='#fff'; ctx.fillRect(-7,19,6,4); ctx.fillRect(2,19,6,4);
+  ctx.fillStyle='#ef6f9c'; ctx.beginPath(); ctx.moveTo(-11,16); ctx.lineTo(-6,-4); ctx.lineTo(6,-4); ctx.lineTo(11,16); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#f6c8a0'; ctx.beginPath(); ctx.arc(0,-12,11,0,7); ctx.fill();
+  ctx.fillStyle='#6e4423'; ctx.beginPath(); ctx.ellipse(-11,-10,4,8,0,0,7); ctx.ellipse(11,-10,4,8,0,0,7); ctx.fill();
+  ctx.fillStyle='#6e4423'; ctx.beginPath(); ctx.arc(0,-17,9,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#ffd23f'; ctx.beginPath(); ctx.arc(-11,-16,3,0,7); ctx.arc(11,-16,3,0,7); ctx.fill();
+  ctx.fillStyle='#241812'; ctx.beginPath(); ctx.arc(-4,-12,1.9,0,7); ctx.arc(4,-12,1.9,0,7); ctx.fill();
+  ctx.fillStyle='rgba(255,120,120,.5)'; ctx.beginPath(); ctx.arc(-6,-8,2.4,0,7); ctx.arc(6,-8,2.4,0,7); ctx.fill();
+  ctx.strokeStyle='#c0567a'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.arc(0,-9,3,0.2,Math.PI-0.2); ctx.stroke(); }
+
+// нові вороги — малювання
+function quadBody(col,colDark,eye){
+  ctx.fillStyle=colDark; ctx.beginPath(); ctx.moveTo(-14,2); ctx.quadraticCurveTo(-26,-4,-20,-12); ctx.quadraticCurveTo(-14,-4,-12,2); ctx.fill();
+  ctx.fillStyle=col; roundRect(-15,-6,28,18,8); ctx.fill(); ctx.fillStyle=colDark; ctx.fillRect(-12,10,4,5); ctx.fillRect(8,10,4,5);
+  ctx.fillStyle=col; ctx.beginPath(); ctx.arc(13,-6,10,0,7); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(8,-14); ctx.lineTo(11,-22); ctx.lineTo(14,-13); ctx.fill(); ctx.beginPath(); ctx.moveTo(16,-14); ctx.lineTo(19,-22); ctx.lineTo(20,-13); ctx.fill();
+  ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(20,-7); ctx.lineTo(28,-4); ctx.lineTo(20,0); ctx.fill();
+  ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(27,-4,1.6,0,7); ctx.fill();
+  ctx.fillStyle=eye; ctx.beginPath(); ctx.arc(13,-7,2.2,0,7); ctx.fill(); ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(13.5,-7,1,0,7); ctx.fill(); }
+function drawBeast(e){ const t=e.type;
+  if(t==='spider'){ ctx.strokeStyle='#23232a'; ctx.lineWidth=2;
+    for(let i=0;i<4;i++){ ctx.beginPath(); ctx.moveTo(-3,0); ctx.lineTo(-10-i*2,-7+i*4); ctx.stroke(); ctx.beginPath(); ctx.moveTo(3,0); ctx.lineTo(10+i*2,-7+i*4); ctx.stroke(); }
+    ctx.fillStyle='#1c1c22'; ctx.beginPath(); ctx.ellipse(0,3,9,8,0,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(0,-5,5,0,7); ctx.fill();
+    ctx.fillStyle='#ff3b3b'; ctx.beginPath(); ctx.arc(-2,-6,1.4,0,7); ctx.arc(2,-6,1.4,0,7); ctx.fill(); }
+  else if(t==='snake'){ ctx.strokeStyle='#4f9a3e'; ctx.lineWidth=8; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-13,9); ctx.quadraticCurveTo(4,3,-4,-5); ctx.quadraticCurveTo(-11,-12,7,-12); ctx.stroke();
+    ctx.fillStyle='#5fb04a'; ctx.beginPath(); ctx.arc(7,-12,6,0,7); ctx.fill(); ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.arc(9,-14,1.5,0,7); ctx.fill();
+    ctx.strokeStyle='#c0392b'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(13,-12); ctx.lineTo(18,-13); ctx.stroke(); }
+  else if(t==='hornet'){ ctx.fillStyle='rgba(255,255,255,.6)'; ctx.beginPath(); ctx.ellipse(-7,-9,7,3,-.5,0,7); ctx.ellipse(7,-9,7,3,.5,0,7); ctx.fill();
+    ctx.fillStyle='#e8801a'; ctx.beginPath(); ctx.ellipse(0,0,10,8,0,0,7); ctx.fill(); ctx.fillStyle='#2a2a2a'; ctx.fillRect(-8,-2,4,6); ctx.fillRect(2,-2,4,6);
+    ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(16,-3); ctx.lineTo(16,3); ctx.fill(); ctx.fillStyle='#ff3b3b'; ctx.beginPath(); ctx.arc(-3,-3,1.6,0,7); ctx.arc(3,-3,1.6,0,7); ctx.fill(); }
+  else if(t==='vbat'){ ctx.fillStyle='#2a1c34'; ctx.beginPath(); ctx.moveTo(-8,0); ctx.quadraticCurveTo(-26,-12,-22,6); ctx.quadraticCurveTo(-14,2,-8,8); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(8,0); ctx.quadraticCurveTo(26,-12,22,6); ctx.quadraticCurveTo(14,2,8,8); ctx.fill(); ctx.fillStyle='#3a2a4a'; ctx.beginPath(); ctx.arc(0,0,11,0,7); ctx.fill();
+    ctx.fillStyle='#2a1c34'; ctx.beginPath(); ctx.moveTo(-7,-9); ctx.lineTo(-4,-17); ctx.lineTo(-1,-9); ctx.fill(); ctx.beginPath(); ctx.moveTo(7,-9); ctx.lineTo(4,-17); ctx.lineTo(1,-9); ctx.fill();
+    ctx.fillStyle='#ff3b3b'; ctx.beginPath(); ctx.arc(-4,-1,2.2,0,7); ctx.arc(4,-1,2.2,0,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillRect(-3,6,2,3); ctx.fillRect(1,6,2,3); }
+  else { ctx.save(); const sc=(t==='grizzly')?1.5:(t==='tusker'?1.25:1); ctx.scale(e.face*sc,sc);
+    if(t==='lynx'){ quadBody('#cda866','#a8854a','#ffd23f'); ctx.strokeStyle='#3a2c1c'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(11,-22); ctx.lineTo(10,-29); ctx.moveTo(19,-22); ctx.lineTo(20,-29); ctx.stroke(); ctx.fillStyle='rgba(60,40,20,.5)'; ctx.beginPath(); ctx.arc(-5,-2,1.6,0,7); ctx.arc(2,3,1.6,0,7); ctx.fill(); }
+    else if(t==='wolverine'){ quadBody('#5a4632','#3a2c1c','#ffb02e'); ctx.fillStyle='#caa074'; ctx.fillRect(-14,-6,26,3); }
+    else if(t==='direwolf'){ quadBody('#454a52','#33373d','#ffe27a'); }
+    else if(t==='panther'){ quadBody('#2b2b33','#17171c','#7CFC68'); }
+    else if(t==='tusker'){ ctx.fillStyle='#3a2c1c'; roundRect(-17,-8,32,22,9); ctx.fill();
+      ctx.fillStyle='#2a1f12'; for(let i=-3;i<3;i++){ ctx.beginPath(); ctx.moveTo(i*4,-8); ctx.lineTo(i*4+2,-16); ctx.lineTo(i*4+4,-8); ctx.fill(); }
+      ctx.fillStyle='#3a2c1c'; ctx.fillRect(-12,12,5,5); ctx.fillRect(8,12,5,5);
+      ctx.fillStyle='#4a3826'; ctx.beginPath(); ctx.arc(15,0,11,0,7); ctx.fill(); ctx.fillStyle='#241810'; ctx.beginPath(); ctx.ellipse(24,2,5,6,0,0,7); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(19,5); ctx.lineTo(14,12); ctx.lineTo(20,9); ctx.fill(); ctx.beginPath(); ctx.moveTo(27,5); ctx.lineTo(32,12); ctx.lineTo(26,9); ctx.fill();
+      ctx.fillStyle='#ff3b2b'; ctx.beginPath(); ctx.arc(13,-5,2,0,7); ctx.fill(); }
+    else if(t==='grizzly'){ ctx.fillStyle='#6b4a30'; roundRect(-16,-10,32,26,11); ctx.fill();
+      ctx.beginPath(); ctx.arc(15,-8,12,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(8,-18,5,0,7); ctx.arc(22,-18,5,0,7); ctx.fill();
+      ctx.fillStyle='#caa074'; ctx.beginPath(); ctx.ellipse(22,-4,6,5,0,0,7); ctx.fill(); ctx.fillStyle='#1a120a'; ctx.beginPath(); ctx.arc(26,-5,2,0,7); ctx.fill();
+      ctx.fillStyle='#ff2e1e'; ctx.beginPath(); ctx.arc(13,-9,2.6,0,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(19,0); ctx.lineTo(17,5); ctx.lineTo(22,3); ctx.fill();
+      ctx.fillStyle='#6b4a30'; ctx.fillRect(-12,14,5,6); ctx.fillRect(8,14,5,6); }
+    ctx.restore(); }
+  if(e.boss||e.maxHp>=8){ const w=e.boss?56:40; ctx.fillStyle='rgba(0,0,0,.5)'; roundRect(-w/2,-e.r-22,w,6,3); ctx.fill();
+    ctx.fillStyle=e.boss?'#ff2e1e':'#ff7a5a'; roundRect(-w/2,-e.r-22,w*Math.max(0,e.hp/e.maxHp),6,3); ctx.fill(); }
+  if(e.boss){ ctx.fillStyle='#ffd23f'; ctx.font='bold 12px Trebuchet MS'; ctx.textAlign='center'; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=3;
+    ctx.strokeText(enemyName[e.type]||'Бос',0,-e.r-26); ctx.fillText(enemyName[e.type]||'Бос',0,-e.r-26); ctx.textAlign='left'; } }
+
+// дані рівнів
+const INTROS={
+  2:'Звірята схвильовані: лісом блукав <b>хлопчик Елон</b> (3 рочки). Він злякався павуків 🕷️ і сховався в дуплі. Виконуй прохання звірят, шукай по дуплах і приведи Елона на 🐾 галявину звірів!',
+  3:'Елон згадав: разом гуляла його <b>сестричка Емма</b> (7 років) — і теж заблукала! У лісі завелися <b>небезпечні звірі</b>. Знайди Емму, допомагаючи звірятам, і приведи на галявину.'
+};
+function L2quests(){ return {
+  scout:{ giver:'scout', state:'new', stageIdx:0,
+    intro:['Ой, лисичко! Я бачила хлопчика — він плакав і втік на схід.','Та спершу прожени <b>4 павуки 🕷️</b> з мого дуба!'],
+    stages:[{kind:'defeat',need:'spider',amount:4,nag:'Ще повзають павуки! Лишилось: {n} 🕷️.',spawn:{enemy:'spider',count:4,rel:true},
+        cont:['Дякую! Він із переляку розсипав жолуді.','Назбирай <b>6 жолудів 🌰</b> — віддамо йому.']},
+      {kind:'collect',need:'acorn',amount:6,nag:'Ще <b>6 жолудів 🌰</b> (захід лісу).'}],
+    done:['Шукай малого в дуплистих деревах. 🌳'] },
+  owl:{ giver:'owl', state:'new', stageIdx:0,
+    intro:['Угу. Я бачила малого згори.','Принеси <b>5 квітів 🌸</b> для гнізда — і я розкажу більше.'],
+    stages:[{kind:'collect',need:'flower',amount:5,nag:'Ще <b>5 квітів 🌸</b>.',
+        cont:['Дякую! Тепер прожени <b>2 павуки 🕷️</b>, що лякають совенят.']},
+      {kind:'defeat',need:'spider',amount:2,nag:'Ще <b>{n} 🕷️</b>!',spawn:{enemy:'spider',count:2,rel:true}}],
+    done:['Малий ховається там, де тінь і тиша — у дуплі.'] },
+  bear:{ giver:'bear', state:'new', stageIdx:0,
+    intro:['Бачив хлопчика — голодний, бідака.','Назбирай <b>4 меду 🍯</b> та <b>5 ягід 🫐</b> — підкріпимо його.'],
+    stages:[{kind:'collect',need:'honey',amount:4,nag:'Ще <b>4 меду 🍯</b> (схід).',
+        cont:['Смакота! Тепер <b>5 ягід 🫐</b> з півдня.']},
+      {kind:'collect',need:'berry',amount:5,nag:'Ще <b>5 ягід 🫐</b> (південь).'}],
+    done:['З медом він радо вийде з дупла. Дякую, Рудо!'] },
+}; }
+function L3quests(){ return {
+  rab:{ giver:'rab', state:'new', stageIdx:0,
+    intro:['Емма? Я бачила дівчинку біля струмка!','Та тут завелися хижаки. Прожени <b>3 павуки 🕷️</b> і <b>2 гадюки 🐍</b>.'],
+    stages:[{kind:'defeat',need:'spider',amount:3,nag:'Ще <b>{n} 🕷️</b>!',spawn:{enemy:'spider',count:3,rel:true},
+        cont:['Хух! Тепер <b>2 гадюки 🐍</b> — вони сичать у траві.']},
+      {kind:'defeat',need:'snake',amount:2,nag:'Ще <b>{n} 🐍</b>!',spawn:{enemy:'snake',count:2,rel:true}}],
+    done:['Стежка до струмка вільна. Шукай Емму в дуплах!'] },
+  deer:{ giver:'deer', state:'new', stageIdx:0,
+    intro:['Емма втекла від рисі 🐱.','Подолай <b>2 рисі</b> і принеси <b>6 квітів 🌸</b> для стежки.'],
+    stages:[{kind:'defeat',need:'lynx',amount:2,nag:'Ще <b>{n}</b> рисі 🐱!',spawn:{enemy:'lynx',count:2,rel:true},
+        cont:['Сміливо! Тепер <b>6 квітів 🌸</b>.']},
+      {kind:'collect',need:'flower',amount:6,nag:'Ще <b>6 квітів 🌸</b>.'}],
+    done:['Дорога безпечніша. Дякую!'] },
+  smith:{ giver:'smith', state:'new', stageIdx:0,
+    intro:['Бр-р, налетіли шершні!','Прожени <b>4 шершні 🐝</b> і здолай <b>вепра-ікланя 🐗</b>.'],
+    stages:[{kind:'defeat',need:'hornet',amount:4,nag:'Ще <b>{n} 🐝</b>!',spawn:{enemy:'hornet',count:4,rel:true},
+        cont:['Молодець! Тепер <b>вепр-іклань 🐗</b> — обережно, важкий!']},
+      {kind:'defeat',need:'tusker',amount:1,nag:'Вепр-іклань ще тут 🐗!',spawn:{enemy:'tusker',count:1,rel:true}}],
+    done:['Шлях вільний. Дякую, лисичко!'] },
+  badger:{ giver:'badger', state:'new', stageIdx:0,
+    intro:['Гай стереже <b>Грізлі-блукач 🐻</b> — величезний і лютий.','Подолай його — і дістанешся до Емми!'],
+    stages:[{kind:'defeat',need:'grizzly',amount:1,nag:'Грізлі-блукач ще реве у гаю 🐻!',spawn:{enemy:'grizzly',count:1,rel:true,boss:true}}],
+    done:['Ти подужала Грізлі?! Тепер ліс безпечний для Емми.'] },
+}; }
+const LEVELS={
+  2:{ childKey:'elon', childName:'Елон', start:{x:1728,y:1380}, clearing:{x:1728,y:1520},
+      npcs:[{id:'scout',spr:'squirrel',name:'Білка Шкрябка',x:640,y:560},{id:'owl',spr:'owl',name:'Сова Вухань',x:1728,y:380},{id:'bear',spr:'bear',name:'Ведмідь Гудзь',x:2820,y:620}],
+      quests:L2quests, order:['scout','owl','bear'],
+      items:[['acorn',12,780,820,900],['flower',12,1050,1300,900],['honey',8,2760,780,520],['berry',14,1500,2120,1100]],
+      ambient:[['spider',10,460],['boar',4,560]],
+      searchSpots:[[760,820],[2900,760],[2980,2180],[700,2180],[1500,2300],[2500,980]] },
+  3:{ childKey:'emma', childName:'Емма', start:{x:1728,y:1380}, clearing:{x:1728,y:1520},
+      npcs:[{id:'rab',spr:'rabbit',name:'Зайчиха Лапка',x:600,y:2120},{id:'deer',spr:'deer',name:'Олень Рогач',x:980,y:1320},{id:'smith',spr:'smith',name:'Бобер Майстер',x:2240,y:2120},{id:'badger',spr:'badger',name:'Борсук Сивень',x:2360,y:1320}],
+      quests:L3quests, order:['rab','deer','smith','badger'],
+      items:[['flower',16,1500,1400,1900]],
+      ambient:[['spider',5,460],['snake',2,500],['lynx',2,520],['wolverine',1,560],['hornet',3,500],['vbat',2,520],['direwolf',2,560],['panther',1,560]],
+      searchSpots:[[760,820],[2900,760],[2980,2180],[700,2180],[1500,2300],[2500,980]] }
+};
+function recomputeTotal(){ TOTAL=0; for(const id of order){ const q=quests[id]; TOTAL += q.countAsOne?1:(q.stages?q.stages.length:1); } }
+function loadLevel(n){ const cfg=LEVELS[n]; curLevel=n;
+  document.getElementById('levelDoneScreen').classList.add('hidden');
+  itemDefs.length=0; enemies.length=0; npcs.length=0; npcDefs.length=0; order.length=0;
+  for(const k in quests) delete quests[k]; cage.freed=true;
+  ['acorn','berry','ore','wood','flower','honey','key','wasp','bat','boar','wolf','alpha','spider','snake','lynx','wolverine','hornet','tusker','vbat','direwolf','panther','grizzly'].forEach(k=>inv[k]=0);
+  for(const nd of cfg.npcs){ npcDefs.push(nd); npcs.push(Object.assign({},nd,{bob:Math.random()*6})); }
+  Object.assign(quests, cfg.quests());
+  for(const id of cfg.order) order.push(id);
+  cfg.items.forEach(it=>addItems(it[0],it[1],it[2],it[3],it[4]));
+  cfg.ambient.forEach(a=>spawnAmbient(a[0],a[1],a[2]));
+  LV={ key:cfg.childKey, name:cfg.childName, clearing:cfg.clearing,
+       spots:cfg.searchSpots.map(s=>({x:s[0],y:s[1],searched:false,isChild:false})),
+       childFound:false, following:false, delivered:false, child:{x:0,y:0,anim:0} };
+  LV.spots[Math.floor(Math.random()*LV.spots.length)].isChild=true;
+  recomputeTotal();
+  player.x=cfg.start.x; player.y=cfg.start.y; player.hp=player.maxHp; player.iframes=1.2; player.regenT=0;
+  questLogOpen=false; toastT=0; dialog=null; levelQueue=0; state='play'; startTime=performance.now();
+  showToast('Рівень '+n+': знайди '+cfg.childName+'!');
+}
+function completeLevel(){ if(curLevel>=TOTAL_LEVELS){ winGame(); return; } showLevelDone(); }
+function showLevelDone(){ state='levelDone'; const nxt=curLevel+1;
+  document.getElementById('lvDoneTitle').textContent = curLevel===1?'🎉 Свято врятовано!':('🎉 '+(curLevel===2?'Елона':'Емму')+' врятовано!');
+  document.getElementById('lvDoneText').innerHTML = INTROS[nxt]||'';
+  document.getElementById('lvDoneBtn').textContent = '▶ Рівень '+nxt;
+  document.getElementById('levelDoneScreen').classList.remove('hidden'); }
+function childNpc(){ return {id:'child', spr:LV.key, name:LV.name}; }
+function searchSpot(s){
+  if(s.isChild){
+    if(!order.every(isDone)){ openDialog(['Ти чуєш тихеньке схлипування з дупла...','— Я боюся виходити! Тут стільки звірів...','Спершу допоможи звірятам — і '+LV.name+' наважиться вийти.'],childNpc()); return; }
+    LV.childFound=true; LV.following=true; LV.child.x=s.x; LV.child.y=s.y+12; LV.child.anim=0;
+    openDialog(['Ти знайшла '+LV.name+'! 🧒','— Дякую, лисичко Рудо! Я загубився...','Веди мене на 🐾 галявину звірів!'],childNpc(),{reward:true}); chime();
+  } else { s.searched=true; showToast('🕷️ Тут лише павуки — не той схов!'); sfx(160,.15,'sawtooth',.14);
+    for(let i=0;i<2;i++) enemies.push(makeEnemy('spider',clamp(s.x+(Math.random()-.5)*50,60,WORLD_W-60),clamp(s.y+(Math.random()-.5)*50,60,WORLD_H-60))); }
+}
+function childFollowDeliver(dt){ if(!LV||!LV.following||LV.delivered) return;
+  const tx=player.x-player.face*24, ty=player.y+8;
+  LV.child.x+=(tx-LV.child.x)*Math.min(1,dt*4); LV.child.y+=(ty-LV.child.y)*Math.min(1,dt*4);
+  if(Math.hypot(tx-LV.child.x,ty-LV.child.y)>3) LV.child.anim+=dt*9;
+  if(Math.hypot(LV.child.x-LV.clearing.x,LV.child.y-LV.clearing.y)<64) deliverChild(); }
+function deliverChild(){ LV.delivered=true; LV.following=false;
+  let lines=['🎉 '+LV.name+' удома, на галявині звірів!'];
+  if(curLevel===2) lines=lines.concat(['— Дякую, лисичко! Але... моя сестричка Емма теж пішла гуляти й заблукала!','Треба знайти і її.']);
+  else lines=lines.concat(['Уся родина в безпеці. Звірята святкують! 🥳']);
+  openDialog(lines,childNpc(),{reward:true,final:true}); chime(); }
+function drawChild(c){ const bob=Math.sin(c.anim)*2.5; shadow(c.x,c.y+16,12); ctx.save(); ctx.translate(c.x,c.y+bob);
+  (LV.key==='emma'?drawEmma:drawElon)();
+  ctx.font='bold 11px Trebuchet MS'; const w=ctx.measureText(LV.name).width+12;
+  ctx.fillStyle='rgba(20,40,28,.7)'; roundRect(-w/2,-44,w,16,6); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.fillText(LV.name,0,-32); ctx.textAlign='left'; ctx.restore(); }
+function drawLevelGround(){ if(!LV) return; const cx=LV.clearing.x, cy=LV.clearing.y;
+  ctx.fillStyle='rgba(255,210,63,.16)'; ctx.beginPath(); ctx.arc(cx,cy,60,0,7); ctx.fill();
+  ctx.strokeStyle='rgba(255,210,63,.55)'; ctx.lineWidth=3; ctx.setLineDash([9,9]); ctx.beginPath(); ctx.arc(cx,cy,60,0,7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#7a4a25'; ctx.fillRect(cx-2,cy-44,4,30); ctx.fillStyle='#caa46a'; roundRect(cx-30,cy-60,60,18,4); ctx.fill();
+  ctx.fillStyle='#3a2014'; ctx.font='bold 11px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('🐾 Галявина',cx,cy-47); ctx.textAlign='left';
+  if(!LV.childFound) for(const s of LV.spots){ if(s.searched&&!s.isChild) continue; shadow(s.x,s.y+8,16);
+    ctx.fillStyle='#2f6a3c'; ctx.beginPath(); ctx.arc(s.x-8,s.y,12,0,7); ctx.arc(s.x+8,s.y,12,0,7); ctx.arc(s.x,s.y-8,13,0,7); ctx.fill();
+    ctx.fillStyle='#13301c'; ctx.beginPath(); ctx.ellipse(s.x,s.y,6,8,0,0,7); ctx.fill();
+    if(Math.hypot(s.x-player.x,s.y-player.y)<74){ ctx.fillStyle='#ffd23f'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('?',s.x,s.y-24);
+      ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='12px Trebuchet MS'; ctx.fillText('E — оглянути',s.x,s.y+32); ctx.textAlign='left'; } }
+  if(LV.following){ const ang=Math.atan2(cy-player.y,cx-player.x), rx=player.x+Math.cos(ang)*80, ry=player.y+Math.sin(ang)*80;
+    ctx.save(); ctx.translate(rx,ry); ctx.rotate(ang); ctx.fillStyle='#ffd23f'; ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(12,0); ctx.lineTo(-4,-7); ctx.lineTo(-4,7); ctx.closePath(); ctx.fill(); ctx.restore(); } }
+
 //------------------------------------------------------------------ цикл
 let last=performance.now();
 function loop(now){ const dt=Math.min(0.05,(now-last)/1000); last=now; if(state==='play'||state==='dialog'){ update(dt); draw(); }
@@ -937,6 +1175,7 @@ canvas.addEventListener('pointerdown',e=>{
 });
 document.getElementById('startBtn').addEventListener('click',startGame);
 document.getElementById('againBtn').addEventListener('click',()=>location.reload());
+document.getElementById('lvDoneBtn').addEventListener('click',()=>loadLevel(curLevel+1));
 window.addEventListener('keydown',e=>{ if(state==='title'&&(e.key==='Enter'||e.key===' ')) startGame(); });
 
 //------------------------------------------------------------------ сенсорне керування
