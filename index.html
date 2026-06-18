@@ -1060,20 +1060,48 @@ const LEVELS={
       quests:L2quests, order:['scout','owl','bear'],
       items:[['acorn',12,780,820,900],['flower',12,1050,1300,900],['honey',8,2760,780,520],['berry',14,1500,2120,1100]],
       ambient:[['spider',10,460],['boar',4,560]],
-      searchSpots:[[760,820],[2900,760],[2980,2180],[700,2180],[1500,2300],[2500,980]] },
+      terrain:{ ponds:[{cx:760,cy:760,rx:300,ry:200},{cx:2900,cy:2100,rx:260,ry:180}], treeCount:460, decorCount:150, rockRatio:0.35, flowerCount:430 },
+      searchSpots:[[1800,560],[2700,760],[2950,1300],[600,1300],[1300,2250],[2300,2200]] },
   3:{ childKey:'emma', childName:'Емма', childAcc:'Емму', start:{x:1728,y:1380}, clearing:{x:1728,y:1520},
       npcs:[{id:'rab',spr:'rabbit',name:'Зайчиха Лапка',x:600,y:2120},{id:'deer',spr:'deer',name:'Олень Рогач',x:980,y:1320},{id:'smith',spr:'smith',name:'Бобер Майстер',x:2240,y:2120},{id:'badger',spr:'badger',name:'Борсук Сивень',x:2360,y:1320}],
       quests:L3quests, order:['rab','deer','smith','badger'],
       items:[['flower',16,1500,1400,1900]],
       ambient:[['spider',5,460],['snake',2,500],['lynx',2,520],['wolverine',1,560],['hornet',3,500],['vbat',2,520],['direwolf',2,560],['panther',1,560]],
-      searchSpots:[[760,820],[2900,760],[2980,2180],[700,2180],[1500,2300],[2500,980]] }
+      terrain:{ ponds:[{cx:1728,cy:2380,rx:560,ry:260}], sands:[{r0:5,r1:11,c0:7,c1:15},{r0:6,r1:12,c0:55,c1:64}], treeCount:280, decorCount:185, rockRatio:0.6, flowerCount:360 },
+      searchSpots:[[760,760],[2900,760],[700,1500],[2950,1500],[1728,560],[2300,1080]] }
 };
+function clearArea(x,y,rad){ const c0=Math.max(0,Math.floor((x-rad)/TILE)),c1=Math.min(COLS,Math.ceil((x+rad)/TILE)),r0=Math.max(0,Math.floor((y-rad)/TILE)),r1=Math.min(ROWS,Math.ceil((y+rad)/TILE));
+  for(let r=r0;r<r1;r++) for(let c=c0;c<c1;c++){ if(Math.hypot(c*TILE+24-x,r*TILE+24-y)<rad) grid[r][c]=0; } }
+function genTerrain(cfg){ const T=cfg.terrain;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) grid[r][c]=0;
+  solids.length=0; decor.length=0; flowers.length=0; reserved.length=0;
+  for(const p of T.ponds){ for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ const px=c*TILE+24,py=r*TILE+24,d=((px-p.cx)/p.rx)**2+((py-p.cy)/p.ry)**2;
+    if(d<1) grid[r][c]=2; else if(d<1.4&&grid[r][c]===0) grid[r][c]=4; } }
+  for(const s of (T.sands||[])){ for(let r=s.r0;r<s.r1;r++) for(let c=s.c0;c<s.c1;c++) if(r>=0&&r<ROWS&&c>=0&&c<COLS&&grid[r][c]===0) grid[r][c]=4; }
+  clearArea(START.x,START.y,120); clearArea(cfg.clearing.x,cfg.clearing.y,80);
+  for(const n of cfg.npcs) clearArea(n.x,n.y,76);
+  for(const s of cfg.searchSpots) clearArea(s[0],s[1],56);
+  reserve(START.x,START.y,110); reserve(cfg.clearing.x,cfg.clearing.y,80);
+  for(const n of cfg.npcs) reserve(n.x,n.y,86);
+  for(const s of cfg.searchSpots) reserve(s[0],s[1],58);
+  for(const n of cfg.npcs) path(START.x,START.y,n.x,n.y);
+  path(START.x,START.y,cfg.clearing.x,cfg.clearing.y);
+  for(let c=0;c<COLS;c++){ addTree(c*TILE+24,24); addTree(c*TILE+24,WORLD_H-24); }
+  for(let r=1;r<ROWS-1;r++){ addTree(24,r*TILE+24); addTree(WORLD_W-24,r*TILE+24); }
+  for(let i=0;i<T.treeCount;i++){ const x=80+Math.random()*(WORLD_W-160),y=80+Math.random()*(WORLD_H-160);
+    if(tileAt(x,y)!==0||nearReserved(x,y)) continue; addTree(x,y); reserve(x,y,40); }
+  for(let i=0;i<T.decorCount;i++){ const x=80+Math.random()*(WORLD_W-160),y=80+Math.random()*(WORLD_H-160);
+    if(tileAt(x,y)===2||nearReserved(x,y)) continue; const kind=Math.random()<(T.rockRatio||.4)?'rock':'bush';
+    decor.push({x,y,kind,seed:Math.random()}); if(kind==='rock'){ solids.push({x,y:y+6,r:14,type:'rock'}); reserve(x,y,30); } }
+  for(let i=0;i<T.flowerCount;i++){ const x=Math.random()*WORLD_W,y=Math.random()*WORLD_H;
+    if(tileAt(x,y)===0&&!nearReserved(x,y)) flowers.push({x,y,c:Math.floor(Math.random()*4)}); } }
 function recomputeTotal(){ TOTAL=0; for(const id of order){ const q=quests[id]; TOTAL += q.countAsOne?1:(q.stages?q.stages.length:1); } }
 function loadLevel(n){ const cfg=LEVELS[n]; curLevel=n;
   document.getElementById('levelDoneScreen').classList.add('hidden');
   itemDefs.length=0; enemies.length=0; npcs.length=0; npcDefs.length=0; order.length=0;
   for(const k in quests) delete quests[k]; cage.freed=true;
   ['acorn','berry','ore','wood','flower','honey','key','wasp','bat','boar','wolf','alpha','spider','snake','lynx','wolverine','hornet','tusker','vbat','direwolf','panther','grizzly'].forEach(k=>inv[k]=0);
+  genTerrain(cfg);
   for(const nd of cfg.npcs){ npcDefs.push(nd); npcs.push(Object.assign({},nd,{bob:Math.random()*6})); }
   Object.assign(quests, cfg.quests());
   for(const id of cfg.order) order.push(id);
