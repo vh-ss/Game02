@@ -196,6 +196,7 @@ for(let r=34;r<41;r++) for(let c=60;c<68;c++) if(grid[r][c]===0) grid[r][c]=4; /
 
 const START={x:1728,y:1380};
 const PORTAL={x:170,y:170};   // прихований тест-портал (лівий верхній кут)
+const TEST_PORTAL=false;      // ← постав true, щоб увімкнути портал переходу між рівнями (для тестів)
 const npcDefs=[
   {id:'squirrel', name:'Горішок',    x:640,  y:560 },
   {id:'owl',      name:'Пугач',      x:1728, y:380 },
@@ -537,7 +538,7 @@ function update(dt){
   let spot=null; if(LV&&!LV.childFound){ let sd=1e9; for(const s of LV.spots){ if(s.searched&&!s.isChild) continue;
     const d=Math.hypot(s.x-player.x,s.y-player.y); if(d<74&&d<sd){sd=d;spot=s;} } }
   const pe=pressed('e');
-  const nearPortal=Math.hypot(PORTAL.x-player.x,PORTAL.y-player.y)<70;
+  const nearPortal=TEST_PORTAL && Math.hypot(PORTAL.x-player.x,PORTAL.y-player.y)<70;
   if(near&&pe) interact(near); else if(pe&&player.nearCage) cageInteract(); else if(pe&&spot) searchSpot(spot); else if(pe&&nearPortal) skipLevel();
   childFollowDeliver(dt);
 
@@ -802,7 +803,7 @@ function drawBadger(){ // бабуся-борсучиха
 
 //------------------------------------------------------------------ компас
 function enemyAliveOf(tag){ let b=null,bd=1e9; for(const e of enemies){ if(e.alive&&e.tag===tag){ const d=Math.hypot(e.x-player.x,e.y-player.y); if(d<bd){bd=d;b=e;} } } return b; }
-function drawPortal(){ const x=PORTAL.x,y=PORTAL.y,t=performance.now()/600;
+function drawPortal(){ if(!TEST_PORTAL) return; const x=PORTAL.x,y=PORTAL.y,t=performance.now()/600;
   shadow(x,y+8,16);
   const cols=['#b07bff','#8fd0ff','#ff9af0'];
   for(let i=0;i<3;i++){ ctx.strokeStyle=cols[i]; ctx.globalAlpha=0.85; ctx.lineWidth=3;
