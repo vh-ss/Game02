@@ -1124,8 +1124,11 @@ function showLevelDone(){ state='levelDone'; const nxt=curLevel+1;
   document.getElementById('levelDoneScreen').classList.remove('hidden'); }
 function childNpc(){ return {id:'child', spr:LV.key, name:LV.name}; }
 function searchSpot(s){
+  if(!order.every(isDone)){
+    openDialog(['Ти зазирнула в дупло...','Десь тут чути тихеньке схлипування, але дитина боїться виходити.','Спершу допоможи всім звірятам — тоді '+LV.name+' наважиться вийти.'],childNpc());
+    return;   // до виконання квестів дупла не «витрачаються»
+  }
   if(s.isChild){
-    if(!order.every(isDone)){ openDialog(['Ти чуєш тихеньке схлипування з дупла...','— Я боюся виходити! Тут стільки звірів...','Спершу допоможи звірятам — і '+LV.name+' наважиться вийти.'],childNpc()); return; }
     LV.childFound=true; LV.following=true; LV.child.x=s.x; LV.child.y=s.y+12; LV.child.anim=0;
     openDialog(['Ти знайшла '+LV.acc+'! 🧒','— Дякую, лисичко Рудо! Я загубився...','Веди мене на 🐾 галявину звірів!'],childNpc(),{reward:true}); chime();
   } else { s.searched=true; showToast('🕷️ Тут лише павуки — не той схов!'); sfx(160,.15,'sawtooth',.14);
@@ -1156,6 +1159,10 @@ function drawLevelGround(){ if(!LV) return; const cx=LV.clearing.x, cy=LV.cleari
     ctx.fillStyle='#13301c'; ctx.beginPath(); ctx.ellipse(s.x,s.y,6,8,0,0,7); ctx.fill();
     if(Math.hypot(s.x-player.x,s.y-player.y)<74){ ctx.fillStyle='#ffd23f'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('?',s.x,s.y-24);
       ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='12px Trebuchet MS'; ctx.fillText('E — оглянути',s.x,s.y+32); ctx.textAlign='left'; } }
+  if(!LV.childFound && order.every(isDone)){
+    let best=null,bd=1e9; for(const s of LV.spots){ if(s.searched) continue; const d=Math.hypot(s.x-player.x,s.y-player.y); if(d<bd){bd=d;best=s;} }
+    if(best && bd>90){ const ang=Math.atan2(best.y-player.y,best.x-player.x), rx=player.x+Math.cos(ang)*80, ry=player.y+Math.sin(ang)*80;
+      ctx.save(); ctx.translate(rx,ry); ctx.rotate(ang); ctx.fillStyle='#9be0ff'; ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(12,0); ctx.lineTo(-4,-7); ctx.lineTo(-4,7); ctx.closePath(); ctx.fill(); ctx.restore(); } }
   if(LV.following){ const ang=Math.atan2(cy-player.y,cx-player.x), rx=player.x+Math.cos(ang)*80, ry=player.y+Math.sin(ang)*80;
     ctx.save(); ctx.translate(rx,ry); ctx.rotate(ang); ctx.fillStyle='#ffd23f'; ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(12,0); ctx.lineTo(-4,-7); ctx.lineTo(-4,7); ctx.closePath(); ctx.fill(); ctx.restore(); } }
 
