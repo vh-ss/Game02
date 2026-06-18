@@ -195,6 +195,7 @@ for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ const px=c*TILE+24,py=r*TILE+24
 for(let r=34;r<41;r++) for(let c=60;c<68;c++) if(grid[r][c]===0) grid[r][c]=4; // скелі (руда)
 
 const START={x:1728,y:1380};
+const PORTAL={x:170,y:170};   // прихований тест-портал (лівий верхній кут)
 const npcDefs=[
   {id:'squirrel', name:'Горішок',    x:640,  y:560 },
   {id:'owl',      name:'Пугач',      x:1728, y:380 },
@@ -224,7 +225,7 @@ const player={ x:START.x,y:START.y,r:13,speed:2.7,face:1,moving:false,anim:0,
   hp:6,maxHp:6,iframes:0,atkTimer:0,atkDur:0.2,atkCd:0,swingId:0,regenT:0,
   dmg:1,reach:REACH,atkCdMax:0.38,regenEvery:7,iHit:1.0,level:1,xp:0,xpNext:20 };
 reserve(player.x,player.y,90);
-npcDefs.forEach(n=>reserve(n.x,n.y,80)); reserve(cage.x,cage.y,70);
+npcDefs.forEach(n=>reserve(n.x,n.y,80)); reserve(cage.x,cage.y,70); reserve(PORTAL.x,PORTAL.y,60);
 
 // колекційні предмети
 const itemDefs=[];
@@ -536,7 +537,8 @@ function update(dt){
   let spot=null; if(LV&&!LV.childFound){ let sd=1e9; for(const s of LV.spots){ if(s.searched&&!s.isChild) continue;
     const d=Math.hypot(s.x-player.x,s.y-player.y); if(d<74&&d<sd){sd=d;spot=s;} } }
   const pe=pressed('e');
-  if(near&&pe) interact(near); else if(pe&&player.nearCage) cageInteract(); else if(pe&&spot) searchSpot(spot);
+  const nearPortal=Math.hypot(PORTAL.x-player.x,PORTAL.y-player.y)<70;
+  if(near&&pe) interact(near); else if(pe&&player.nearCage) cageInteract(); else if(pe&&spot) searchSpot(spot); else if(pe&&nearPortal) skipLevel();
   childFollowDeliver(dt);
 
   const vw=vwz(),vh=vhz();
@@ -585,7 +587,7 @@ function draw(){
     else if(e.k==='enemy') drawEnemy(o); else if(e.k==='npc') drawNpc(o); else if(e.k==='cage') drawCage();
     else if(e.k==='child') drawChild(o); else drawPlayer(); }
   if(curLevel===1) drawArch();
-  cageHint(); drawCompass();
+  cageHint(); drawCompass(); drawPortal();
   ctx.restore();
   const vg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.35,VW/2,VH/2,Math.max(VW,VH)*0.75);
   vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.28)'); ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
@@ -800,6 +802,14 @@ function drawBadger(){ // бабуся-борсучиха
 
 //------------------------------------------------------------------ компас
 function enemyAliveOf(tag){ let b=null,bd=1e9; for(const e of enemies){ if(e.alive&&e.tag===tag){ const d=Math.hypot(e.x-player.x,e.y-player.y); if(d<bd){bd=d;b=e;} } } return b; }
+function drawPortal(){ const x=PORTAL.x,y=PORTAL.y,t=performance.now()/600;
+  shadow(x,y+8,16);
+  const cols=['#b07bff','#8fd0ff','#ff9af0'];
+  for(let i=0;i<3;i++){ ctx.strokeStyle=cols[i]; ctx.globalAlpha=0.85; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.ellipse(x,y-4,15-i*4,20-i*5,Math.sin(t+i)*0.5,0,7); ctx.stroke(); }
+  ctx.globalAlpha=1;
+  if(Math.hypot(x-player.x,y-player.y)<70){ ctx.fillStyle='#ffd23f'; ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='center';
+    ctx.fillText('E — наступний рівень ▶',x,y+30); ctx.textAlign='left'; } }
 function drawCompass(){ let tgt=null,col,td=1e9;
   for(const id of order){ const q=quests[id]; if(q.stages&&q.state==='active'){ const st=curStage(q);
     if(st.kind==='defeat'&&inv[st.need]<st.amount){ const e=enemyAliveOf(st.need); if(e){ const d=Math.hypot(e.x-player.x,e.y-player.y); if(d<td){td=d;tgt=e;col='#ff7a6a';} } } } }
@@ -828,7 +838,7 @@ function drawHUD(){ const done=progressDone(), panelW=Math.min(VW-24,480);
   ctx.fillStyle='#8fd0ff'; roundRect(82,82,130*Math.min(1,player.xp/player.xpNext),11,5); ctx.fill();
   if(inv.key>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🗝️ ключ у тебе', 22, 116); }
   else if(LV&&!LV.delivered){ ctx.font='13px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.textAlign='left';
-    const txt=LV.following?('🏡 Веди '+LV.acc+' на галявину'):(order.every(isDone)?('🔎 Шукай '+LV.acc+' у дуплах (?)'):('🐾 Допоможи звірятам, тоді знайдеш '+LV.acc)); ctx.fillText(txt,22,116); }
+    const txt=LV.following?('🏡 Веди '+LV.acc+' на галявину'):(order.every(isDone)?('🔎 Шукай '+LV.acc+' у дуплах · Shift — напрямок'):('🐾 Допоможи звірятам, тоді знайдеш '+LV.acc)); ctx.fillText(txt,22,116); }
   ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='12px Trebuchet MS'; ctx.fillText('Q — журнал · Space — удар хвостиком · Shift — понюхати', 22, VH-16);
   if(toastT>0&&toast){ const a=Math.min(1,toastT/0.4); ctx.globalAlpha=a; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
     const w=ctx.measureText(toast).width+40; ctx.fillStyle='rgba(20,40,28,.85)'; roundRect(VW/2-w/2,64,w,38,12); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(toast,VW/2,89); ctx.globalAlpha=1; ctx.textAlign='left'; }
@@ -1080,10 +1090,10 @@ function genTerrain(cfg){ const T=cfg.terrain;
   for(const s of (T.sands||[])){ for(let r=s.r0;r<s.r1;r++) for(let c=s.c0;c<s.c1;c++) if(r>=0&&r<ROWS&&c>=0&&c<COLS&&grid[r][c]===0) grid[r][c]=4; }
   clearArea(START.x,START.y,120); clearArea(cfg.clearing.x,cfg.clearing.y,80);
   for(const n of cfg.npcs) clearArea(n.x,n.y,76);
-  for(const s of cfg.searchSpots) clearArea(s[0],s[1],56);
+  for(const s of cfg.searchSpots) clearArea(s[0],s[1],56); clearArea(PORTAL.x,PORTAL.y,60);
   reserve(START.x,START.y,110); reserve(cfg.clearing.x,cfg.clearing.y,80);
   for(const n of cfg.npcs) reserve(n.x,n.y,86);
-  for(const s of cfg.searchSpots) reserve(s[0],s[1],58);
+  for(const s of cfg.searchSpots) reserve(s[0],s[1],58); reserve(PORTAL.x,PORTAL.y,60);
   for(const n of cfg.npcs) path(START.x,START.y,n.x,n.y);
   path(START.x,START.y,cfg.clearing.x,cfg.clearing.y);
   for(let c=0;c<COLS;c++){ addTree(c*TILE+24,24); addTree(c*TILE+24,WORLD_H-24); }
@@ -1096,6 +1106,7 @@ function genTerrain(cfg){ const T=cfg.terrain;
   for(let i=0;i<T.flowerCount;i++){ const x=Math.random()*WORLD_W,y=Math.random()*WORLD_H;
     if(tileAt(x,y)===0&&!nearReserved(x,y)) flowers.push({x,y,c:Math.floor(Math.random()*4)}); } }
 function recomputeTotal(){ TOTAL=0; for(const id of order){ const q=quests[id]; TOTAL += q.countAsOne?1:(q.stages?q.stages.length:1); } }
+function skipLevel(){ if(curLevel<3) loadLevel(curLevel+1); else winGame(); }
 function loadLevel(n){ const cfg=LEVELS[n]; curLevel=n;
   document.getElementById('levelDoneScreen').classList.add('hidden');
   itemDefs.length=0; enemies.length=0; npcs.length=0; npcDefs.length=0; order.length=0;
@@ -1159,7 +1170,7 @@ function drawLevelGround(){ if(!LV) return; const cx=LV.clearing.x, cy=LV.cleari
     ctx.fillStyle='#13301c'; ctx.beginPath(); ctx.ellipse(s.x,s.y,6,8,0,0,7); ctx.fill();
     if(Math.hypot(s.x-player.x,s.y-player.y)<74){ ctx.fillStyle='#ffd23f'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('?',s.x,s.y-24);
       ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='12px Trebuchet MS'; ctx.fillText('E — оглянути',s.x,s.y+32); ctx.textAlign='left'; } }
-  if(!LV.childFound && order.every(isDone)){
+  if(keys['shift'] && !LV.childFound && order.every(isDone)){
     let best=null,bd=1e9; for(const s of LV.spots){ if(s.searched) continue; const d=Math.hypot(s.x-player.x,s.y-player.y); if(d<bd){bd=d;best=s;} }
     if(best && bd>90){ const ang=Math.atan2(best.y-player.y,best.x-player.x), rx=player.x+Math.cos(ang)*80, ry=player.y+Math.sin(ang)*80;
       ctx.save(); ctx.translate(rx,ry); ctx.rotate(ang); ctx.fillStyle='#9be0ff'; ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(12,0); ctx.lineTo(-4,-7); ctx.lineTo(-4,7); ctx.closePath(); ctx.fill(); ctx.restore(); } }
