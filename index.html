@@ -222,6 +222,7 @@ const npcDefs=[
   {id:'smith',    name:'Боброслав',  x:2240, y:2120 },
   {id:'rabbit',   name:'Стрибунець', x:600,  y:2120 },
   {id:'deer',     name:'Оленка',     x:980,  y:1320 },
+  {id:'badger',   name:'Борсуня',    x:2360, y:1320 },
   {id:'hedgehog', name:'Колючка',    x:1728, y:2360 },
 ];
 const cage={x:3160,y:1380,freed:false};
@@ -253,7 +254,8 @@ function addItems(type,n,cx,cy,spread){ for(let i=0;i<n;i++){ let x,y,t=0;
   itemDefs.push({type,x,y,got:false,bob:Math.random()*6}); reserve(x,y,30); } }
 addItems('ore',    6, 3000, 1760,  700);
 addItems('wood',  14, 1728, 1380, 2500);
-addItems('honey',  7, 2760,  780,  560);
+addItems('honey', 10, 2760,  780,  560);
+addItems('berry', 12, 1500, 2120, 1100);
 
 // дерева
 function addTree(x,y){ solids.push({x,y,r:17,type:'tree',seed:Math.random()}); }
@@ -354,6 +356,18 @@ const EN={
 'Тут замкнене зайченя...':'A little bunny is locked in here...','Спершу розпитай Стрибунця на південному заході.':'First ask Hopper in the south-west.',
 'Клітка міцно замкнена.':'The cage is firmly locked.','Потрібен ключ 🗝️ — його викує коваль Боброслав за руду й дерево.':'You need the key 🗝️ — smith Beaverton forges it for ore and wood.',
 '*клац* Клітка відчинилась!':'*click* The cage opened!','— Дякую, лисичко! — пискнуло зайченя й побігло до тата. 🐰💨':'— Thank you, fox! — squeaked the bunny and ran to its dad. 🐰💨',
+// --- бабуся Борсуня (розмова + 2 гілки) ---
+'Борсуня':'Granny Badger',
+'Ох, лисичко, добре що завітала.':'Oh, fox, glad you stopped by.','Я бабуся Борсуня, готую частування на свято.':'I am Granny Badger, preparing treats for the festival.','Допоможеш бабусі?':'Will you help granny?',
+'Звісно, бабусю! З радістю 🌼':'Of course, granny! Gladly 🌼','Ну і чого тобі від мене треба?':'And what do you want from me?',
+'Яка ж ти ввічлива, дитинко! 🥰':'How polite you are, dear! 🥰','Тоді спечемо легку справу — медовий пиріг.':'Then let us bake an easy treat — a honey pie.','Принеси <b>3 меду 🍯</b> та <b>4 ягоди 🫐</b>.':'Bring <b>3 honey 🍯</b> and <b>4 berries 🫐</b>.',
+'Для пирога треба <b>3 горнятка меду 🍯</b> (шукай біля бджіл, де ведмідь на сході).':'The pie needs <b>3 pots of honey 🍯</b> (look near the bees, by the bear in the east).',
+'Який запашний мед!':'What fragrant honey!','Тепер <b>4 ягоди 🫐</b> з півдня — і пиріг готовий!':'Now <b>4 berries 🫐</b> from the south — and the pie is ready!',
+'Ще <b>4 ягоди 🫐</b> на пиріг (південь лісу).':'Still <b>4 berries 🫐</b> for the pie (south of the forest).',
+'Ммм, який духмяний медовий пиріг! 🥧':'Mmm, what a fragrant honey pie! 🥧','Дякую тобі, чемна лисичко! Тримай шматочок.':'Thank you, polite fox! Here is a slice.',
+'Ач яка грубіянка! 😤':'What a rude little thing! 😤','То заслужи частування важкою працею.':'Then earn your treat with hard work.','На південному сході завівся <b>Вожак вовків 🐺</b> — величезний і лютий. Подолай його!':'A <b>Wolf Leader 🐺</b> appeared in the south-east — huge and fierce. Defeat it!',
+'Грубіянам — важка робота. <b>Вожак вовків 🐺</b> нишпорить на південному сході. Подолай його!':'Rude ones get hard work. The <b>Wolf Leader 🐺</b> prowls the south-east. Defeat it!',
+'Ти подужала Вожака?! Оце так сила!':'You beat the Wolf Leader?! What strength!','Гаразд, заслужила частування. Дякую... і вибач за сварливість.':'Alright, you earned your treat. Thank you... and sorry for being grumpy.',
 // --- Рівень 2 квести ---
 'Ой, лисичко! Я бачила хлопчика — він плакав і втік на схід.':'Oh, fox! I saw a boy — he cried and ran east.',
 'Та спершу прожени <b>4 павуки 🕷️</b> з мого дуба!':'But first drive <b>4 spiders 🕷️</b> off my oak!',
@@ -426,13 +440,17 @@ const quests={
       {kind:'collect',need:'honey',amount:3,nag:'Для свічки бракує меду — <b>3 🍯</b> (біля ведмедя).'}],
     done:['*клац* Ліхтарик готовий і сяє! 🏮','Віднеси його Колючці — нехай прикрасить святкову арку!'] },
 
+  badger:{ type:'talk', giver:'badger', state:'new', countAsOne:true, stageIdx:0,
+    intro:['Ох, лисичко, добре що завітала.','Я бабуся Борсуня, готую частування на свято.','Допоможеш бабусі?'],
+    choices:[{label:'Звісно, бабусю! З радістю 🌼'},{label:'Ну і чого тобі від мене треба?'}] },
+
   hedgehog:{ type:'final', giver:'hedgehog', state:'new', finalNeed:{need:'lantern',amount:1},
     intro:['Пчих! Вітаю, Рудо.','Я прикрашаю святкову арку, та спершу всі мають бути в безпеці.','Допоможи кожному другові — і повертайся!'],
     nag:'Ще не всі друзі в безпеці. Допоможи їм — і почнемо свято!',
     ask:['Усіх врятовано — час прикрасити арку!','Принеси святковий <b>ліхтарик 🏮</b> від Білки, і запалимо вогники!'],
     done:['Ліхтарик засяяв на арці — яка краса!'] },
 };
-const order=['bear','deer','owl','smith','rabbit','squirrel','hedgehog'];
+const order=['bear','deer','owl','smith','rabbit','squirrel','badger','hedgehog'];
 function curStage(q){ return q.stages[q.stageIdx]; }
 function isDone(id){ return quests[id].state==='done'; }
 function othersDone(){ return order.filter(id=>id!=='hedgehog').every(isDone); }
