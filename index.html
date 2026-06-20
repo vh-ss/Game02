@@ -1372,6 +1372,7 @@ function applyLang(){
   setEl('w_h1', tr('🎉 Свято врятовано!','🎉 Festival saved!'));
   const sb=document.getElementById('startBtn'); if(sb) sb.textContent=tr('🌿 Почати пригоду','🌿 Start adventure');
   const ab=document.getElementById('againBtn'); if(ab) ab.textContent=tr('↺ Зіграти знову','↺ Play again');
+  setEl('btnSniff', tr('Нюх','Sniff')); setEl('btnAct', tr('Дія<br>E','Action<br>E')); setEl('btnAtk', tr('Удар<br>🌀','Hit<br>🌀'));
   document.title=tr('Лісові Квести 🦊','Forest Quests 🦊');
 }
 document.querySelectorAll('.langbtn').forEach(b=>b.addEventListener('click',()=>{ LANG=b.dataset.lang; applyLang(); }));
