@@ -946,7 +946,7 @@ function drawPortal(){ if(!TEST_PORTAL) return; const x=PORTAL.x,y=PORTAL.y,t=pe
 function drawCompass(){ let tgt=null,col,td=1e9;
   for(const id of order){ const q=quests[id]; if(q.stages&&q.state==='active'){ const st=curStage(q);
     if(st.kind==='defeat'&&inv[st.need]<st.amount){ const e=enemyAliveOf(st.need); if(e){ const d=Math.hypot(e.x-player.x,e.y-player.y); if(d<td){td=d;tgt=e;col='#ff7a6a';} } } } }
-  if(!tgt && quests.rabbit && quests.rabbit.state==='active'&&!cage.freed){ tgt=cage; col=inv.key>0?'#8fd0ff':'#b7c4cf'; td=Math.hypot(cage.x-player.x,cage.y-player.y); }
+  if(!tgt && quests.rabbit && quests.rabbit.state==='active'&&!cage.freed&&inv.key>0){ tgt=cage; col='#8fd0ff'; td=Math.hypot(cage.x-player.x,cage.y-player.y); }
   if(!tgt && LV&&LV.following){ tgt=LV.clearing; col='#ffd23f'; td=Math.hypot(LV.clearing.x-player.x,LV.clearing.y-player.y); }
   if(!tgt){ for(const n of npcs){ const q=quests[n.id]; if(q.state==='active'&&readyTurnIn(q)){ const d=Math.hypot(n.x-player.x,n.y-player.y); if(d<td){td=d;tgt=n;col='#7CFC68';} } } }
   if(keys['shift']){ const need=new Set();
@@ -973,7 +973,10 @@ function drawHUD(){ const done=progressDone(), panelW=Math.min(VW-24,480);
   if(LV&&!LV.delivered){ ctx.font='13px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.textAlign='left'; const nm=T(LV.acc);
     const txt=LV.following?tr('🏡 Веди '+nm+' на галявину','🏡 Lead '+nm+' to the meadow'):(order.every(isDone)?tr('🔎 Шукай '+nm+' у дуплах · Shift — напрямок','🔎 Search hollows for '+nm+' · Shift — direction'):tr('🐾 Допоможи звірятам, тоді знайдеш '+nm,'🐾 Help the animals, then find '+nm)); ctx.fillText(txt,22,iy); iy+=22; }
   if(inv.key>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText(T('🗝️ ключ у тебе'), 22, iy); iy+=22; }
-  if(inv.lantern>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText(T('🏮 ліхтарик у тебе'), 22, iy); }
+  if(inv.lantern>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText(T('🏮 ліхтарик у тебе'), 22, iy); iy+=22; }
+  // живий прогрес активних збиральних квестів
+  const cp=[]; for(const id of order){ const q=quests[id]; if(q.state==='active'&&q.stages){ const st=curStage(q); if(st.kind==='collect') cp.push(itemEmoji[st.need]+' '+Math.min(inv[st.need],st.amount)+'/'+st.amount); } }
+  if(cp.length){ ctx.font='bold 15px Trebuchet MS'; ctx.fillStyle='#7CFC68'; ctx.textAlign='left'; ctx.fillText(cp.join('   '), 22, iy); iy+=22; }
   ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='12px Trebuchet MS'; ctx.fillText(T('Q — журнал · Space — удар хвостиком · Shift — понюхати'), 22, VH-16);
   if(toastT>0&&toast){ const a=Math.min(1,toastT/0.4); ctx.globalAlpha=a; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center'; const tt=T(toast);
     const w=ctx.measureText(tt).width+40; ctx.fillStyle='rgba(20,40,28,.85)'; roundRect(VW/2-w/2,64,w,38,12); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(tt,VW/2,89); ctx.globalAlpha=1; ctx.textAlign='left'; }
@@ -1376,6 +1379,7 @@ function applyLang(){
   const sb=document.getElementById('startBtn'); if(sb) sb.textContent=tr('🌿 Почати пригоду','🌿 Start adventure');
   const ab=document.getElementById('againBtn'); if(ab) ab.textContent=tr('↺ Зіграти знову','↺ Play again');
   setEl('btnSniff', tr('Нюх','Sniff')); setEl('btnAct', tr('Дія<br>E','Action<br>E')); setEl('btnAtk', tr('Удар<br>🌀','Hit<br>🌀'));
+  setEl('credit', tr('Лісові Квести · одна лисичка, багато друзів','Forest Quests · one little fox, many friends'));
   document.title=tr('Лісові Квести 🦊','Forest Quests 🦊');
 }
 document.querySelectorAll('.langbtn').forEach(b=>b.addEventListener('click',()=>{ LANG=b.dataset.lang; applyLang(); }));
