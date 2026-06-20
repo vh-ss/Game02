@@ -990,13 +990,16 @@ function questStatusText(id){ const q=quests[id];
   if(st.kind==='collect') return {task:tr('зібрати','collect')+` ${st.amount} × ${T(itemNames[st.need])} ${si}`, st:`${itemEmoji[st.need]} ${Math.min(inv[st.need],st.amount)}/${st.amount}`, col:'#ffd23f'};
   return {task:tr('подолати','defeat')+` ${T(enemyName[st.need]||tr('ворога','enemy'))} ${si}`, st:`${enemyEmoji[st.need]||'⚔️'} ${Math.min(inv[st.need],st.amount)}/${st.amount}`, col:'#ff8a6a'};
 }
-function drawQuestLog(){ const w=Math.min(420,VW-40), h=order.length*50+70, x=VW-w-16, y=64;
-  ctx.fillStyle='rgba(18,36,25,.92)'; roundRect(x,y,w,h,16); ctx.fill(); ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#ffd23f'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(T('📜 Журнал квестів'), x+18, y+30);
-  order.forEach((id,i)=>{ const n=npcById(id), info=questStatusText(id), yy=y+54+i*50;
-    ctx.fillStyle='#fff'; ctx.font='bold 14px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(T(n.name)+(isDone(id)?' 😊':''), x+18, yy);
-    ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='12px Trebuchet MS'; ctx.fillText(info.task, x+18, yy+16);
-    ctx.fillStyle=info.col; ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='right'; ctx.fillText(info.st, x+w-18, yy+7); ctx.textAlign='left'; }); }
+function drawQuestLog(){ const n=order.length, y=Math.max(8,52);
+  const avail=VH-y-10; let rowH=50, headH=44; if(headH+n*rowH>avail) rowH=Math.max(26,(avail-headH)/n);
+  const compact=rowH<42, h=Math.min(headH+n*rowH, avail), w=Math.min(420,VW-40), x=VW-w-16;
+  ctx.fillStyle='rgba(18,36,25,.94)'; roundRect(x,y,w,h,14); ctx.fill(); ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#ffd23f'; ctx.font='bold '+(compact?14:18)+'px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(T('📜 Журнал квестів'), x+16, y+(compact?20:28));
+  const top=y+headH, nameF=compact?12:14, taskF=compact?10:12;
+  order.forEach((id,i)=>{ const np=npcById(id), info=questStatusText(id), yy=top+i*rowH+(compact?10:12);
+    ctx.fillStyle='#fff'; ctx.font='bold '+nameF+'px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(T(np.name)+(isDone(id)?' 😊':''), x+16, yy);
+    ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font=taskF+'px Trebuchet MS'; ctx.fillText(info.task, x+16, yy+(compact?12:16));
+    ctx.fillStyle=info.col; ctx.font='bold '+taskF+'px Trebuchet MS'; ctx.textAlign='right'; ctx.fillText(info.st, x+w-16, yy+(compact?2:7)); ctx.textAlign='left'; }); }
 
 function drawDialog(){ const w=Math.min(640,VW-40),h=160,x=VW/2-w/2,y=VH-h-24;
   ctx.fillStyle='rgba(14,28,20,.94)'; roundRect(x,y,w,h,18); ctx.fill(); ctx.strokeStyle='rgba(255,210,63,.5)'; ctx.lineWidth=2; ctx.stroke();
