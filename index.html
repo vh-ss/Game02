@@ -31,7 +31,21 @@
   #titleBg { position:absolute; inset:0; width:100%; height:100%; z-index:0; }
   .tscrim { position:absolute; inset:0; z-index:1;
     background:linear-gradient(180deg, rgba(10,24,16,.22) 0%, rgba(9,20,13,.48) 55%, rgba(7,16,11,.72) 100%); }
-  .tcontent { position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; text-align:center; max-width:720px; }
+  .tcontent { position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; text-align:center; max-width:720px; margin:auto; }
+  .overlay { overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  /* альбомний / низький екран — компактно, щоб кнопка «Почати» завжди була видна */
+  @media (max-height:540px){
+    #titleScreen .tcontent p, #titleScreen .tcontent .keys { display:none; }
+    .overlay h1 { font-size:30px; margin-bottom:6px; }
+    .tcontent { padding:10px 0; }
+    .btn { margin-top:12px; padding:11px 30px; font-size:19px; }
+    .langbar { margin:6px 0 2px !important; }
+  }
+  .langbar { display:flex; gap:10px; justify-content:center; margin:14px 0 4px; }
+  .langbtn { cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent;
+    background:rgba(255,255,255,.12); border:2px solid rgba(255,255,255,.28); color:#fff; border-radius:10px;
+    padding:8px 18px; font-size:16px; font-weight:bold; }
+  .langbtn.active { background:#ffe27a; color:#2b5037; border-color:#ffd23f; }
   .hidden { display:none !important; }
   #credit { position:fixed; bottom:10px; right:14px; color:rgba(255,255,255,.45); font-size:12px; z-index:5; }
   /* сенсорне керування */
@@ -125,6 +139,10 @@
   </div>
   <p style="font-size:14px;opacity:.85">Маркер над звірятком: <b>!</b> новий · <b>…</b> в процесі · <b>?</b> готово здати · <b>✓</b> виконано.</p>
   <p style="font-size:13px;opacity:.7">📱 На весь екран: кнопка <b>⛶</b> у грі. На iPhone — «Поділитися» → «На екран Додому», і запускай з іконки.</p>
+  <div class="langbar" id="langbar">
+    <div class="langbtn active" data-lang="uk">Українська</div>
+    <div class="langbtn" data-lang="en">English</div>
+  </div>
   <button class="btn" id="startBtn">🌿 Почати пригоду</button>
 </div>
 </div>
@@ -204,7 +222,6 @@ const npcDefs=[
   {id:'smith',    name:'Боброслав',  x:2240, y:2120 },
   {id:'rabbit',   name:'Стрибунець', x:600,  y:2120 },
   {id:'deer',     name:'Оленка',     x:980,  y:1320 },
-  {id:'badger',   name:'Борсуня',    x:2360, y:1320 },
   {id:'hedgehog', name:'Колючка',    x:1728, y:2360 },
 ];
 const cage={x:3160,y:1380,freed:false};
@@ -234,12 +251,9 @@ function addItems(type,n,cx,cy,spread){ for(let i=0;i<n;i++){ let x,y,t=0;
   do{ x=cx+(Math.random()-.5)*spread; y=cy+(Math.random()-.5)*spread; t++; }
   while((tileAt(x,y)===2||x<70||x>WORLD_W-70||y<70||y>WORLD_H-70)&&t<80);
   itemDefs.push({type,x,y,got:false,bob:Math.random()*6}); reserve(x,y,30); } }
-addItems('acorn', 14,  780,  820,  900);
-addItems('berry', 16, 1500, 2120, 1100);
 addItems('ore',    6, 3000, 1760,  700);
-addItems('wood',   9, 1728, 1380, 2400);
-addItems('flower',12, 1050, 1300,  800);
-addItems('honey',  6, 2760,  780,  520);
+addItems('wood',  14, 1728, 1380, 2500);
+addItems('honey',  7, 2760,  780,  560);
 
 // дерева
 function addTree(x,y){ solids.push({x,y,r:17,type:'tree',seed:Math.random()}); }
@@ -257,30 +271,28 @@ for(let i=0;i<460;i++){ const x=Math.random()*WORLD_W, y=Math.random()*WORLD_H;
   if(tileAt(x,y)===0&&!nearReserved(x,y)) flowers.push({x,y,c:Math.floor(Math.random()*4)}); }
 
 //------------------------------------------------------------------ інвентар
-const inv={ acorn:0,berry:0,ore:0,wood:0,flower:0,fang:0,honey:0,key:0, wasp:0,bat:0,boar:0,wolf:0,alpha:0 };
-const itemNames={ acorn:'жолудь',berry:'ягода',ore:'руда',wood:'деревинка',flower:'квітка',fang:'ікло',honey:'мед',key:'ключ' };
-const itemEmoji={ acorn:'🌰',berry:'🫐',ore:'⛏️',wood:'🪵',flower:'🌸',fang:'🦷',honey:'🍯',key:'🗝️' };
+const inv={ acorn:0,berry:0,ore:0,wood:0,flower:0,fang:0,honey:0,key:0,lantern:0, wasp:0,bat:0,boar:0,wolf:0,alpha:0 };
+const itemNames={ acorn:'жолудь',berry:'ягода',ore:'руда',wood:'деревинка',flower:'квітка',fang:'ікло',honey:'мед',key:'ключ',lantern:'ліхтарик' };
+const itemEmoji={ acorn:'🌰',berry:'🫐',ore:'⛏️',wood:'🪵',flower:'🌸',fang:'🦷',honey:'🍯',key:'🗝️',lantern:'🏮' };
 const enemyEmoji={ wasp:'🐝',bat:'🦇',boar:'🐗',wolf:'🐺',alpha:'🐺' };
 const enemyName={ wasp:'оса',bat:'Кажанище',boar:'кабан',wolf:'вовк',alpha:'Вожак вовків' };
 
 //------------------------------------------------------------------ квести (уніфіковані етапи)
 const quests={
-  squirrel:{ giver:'squirrel', state:'new', stageIdx:0,
-    intro:['Привіт, лисичко Рудо!','Вітер розкидав мої жолуді по галявині.','Збереш <b>8 жолудів 🌰</b> у західному гаю?'],
-    stages:[
-      {kind:'collect',need:'acorn',amount:8,nag:'Ще шукаю жолуді — треба <b>8 🌰</b> (захід).',
-        cont:['Смакота! Дякую.','А ще <b>6 ягід 🫐</b> з півдня — на святковий пиріг?']},
-      {kind:'collect',need:'berry',amount:6,nag:'Для пирога бракує ягід — <b>6 🫐</b> (південь).'}],
-    done:['Ягідки чудові! Кошик повний. Дякую, Рудо! 😊','Ой, а ти подужчала! Бий лісових хижаків — і зростатимеш у силі. 💪'] },
-
   bear:{ giver:'bear', state:'new', stageIdx:0,
-    intro:['Бурр! Оси-злодійки крадуть мій святковий мед!','Розжени <b>5 ос 🐝</b> — бий хвостиком (Space).','А тоді поможеш із медом.'],
-    stages:[
-      {kind:'defeat',need:'wasp',amount:5,nag:'Ще літають оси! Лишилось: {n} 🐝.',
-        spawn:{enemy:'wasp',count:5,rel:true},
-        cont:['Уф, прогнала! Дякую.','Тепер для меду назбирай <b>5 ягід 🫐</b> з півдня.']},
-      {kind:'collect',need:'berry',amount:5,nag:'Для меду треба <b>5 🫐</b> (південь).'}],
-    done:['Мед готовий, оси розлетілись! Дякую, хоробра лисичко!'] },
+    intro:['Бурр! Оси-злодійки крадуть мій святковий мед!','Розжени <b>5 ос 🐝</b> — бий хвостиком (Space).','Покажи їм, хто тут головний!'],
+    stages:[{kind:'defeat',need:'wasp',amount:5,nag:'Ще літають оси! Лишилось: {n} 🐝.',spawn:{enemy:'wasp',count:5,rel:true}}],
+    done:['Жодної оси — мед у безпеці! Дякую, хоробра лисичко!'] },
+
+  deer:{ giver:'deer', state:'new', stageIdx:0,
+    intro:['Ой, лисичко! Кабани 🐗 розрили галявину для танців!','Прожени <b>3 кабанів</b> (бий Space) — обережно, вони міцні!','Звільни галявину, будь ласка!'],
+    stages:[{kind:'defeat',need:'boar',amount:3,nag:'Ще тупочуть кабани! Лишилось: {n} 🐗.',spawn:{enemy:'boar',count:3,rel:true}}],
+    done:['Галявина вільна — можна танцювати! Дякую, Рудо!'] },
+
+  owl:{ giver:'owl', state:'new', stageIdx:0,
+    intro:['Угу! Кажанище вкрало святкові вогники!','Прожени його, відважна лисичко — бий Space.','Обережно: воно велике й кусюче!'],
+    stages:[{kind:'defeat',need:'bat',amount:1,boss:true,nag:'Кажанище ще кружляє на півночі. Подолай його!',spawn:{enemy:'bat',count:1,at:[1728,250],boss:true}}],
+    done:['Ти прогнала Кажанище — вогники сяють! Дякую, смілива лисичко! ✨'] },
 
   smith:{ giver:'smith', state:'new', stageIdx:0, grants:'key',
     intro:['Тук-тук! Я Боброслав, лісовий коваль.','Для святкового ключа потрібні матеріали.','Принеси <b>3 руди ⛏️</b> — пошукай у скелях на сході.'],
@@ -291,39 +303,25 @@ const quests={
     done:['*дзинь-дзинь* Ось і ключ! 🗝️','Ним відчиниш клітку. Біжи рятувати малюка!'] },
 
   rabbit:{ type:'rescue', giver:'rabbit', state:'new', freed:false,
-    intro:['Біда! Мого малюка замкнули у клітці на далекому сході!','Ключ я загубив... Коваль Боброслав викує новий, як принести йому руду й дерево.','Визволи синочка, благаю! 🗝️'],
+    intro:['Біда! Мого малюка замкнули у клітці на далекому сході!','Ключ я загубив... Коваль Боброслав викує новий за руду й дерево.','Визволи синочка, благаю! 🗝️'],
     nag:'Малюк ще у клітці на сході. Потрібен ключ 🗝️ від коваля Боброслава.',
     done:['Ти повернула мені синочка! Безмежно вдячний! 🐰'] },
 
-  owl:{ giver:'owl', state:'new', stageIdx:0,
-    intro:['Угу! Кажанище вкрало святкові вогники!','Прожени його, відважна лисичко — бий Space.','Обережно: воно велике!'],
+  squirrel:{ giver:'squirrel', state:'new', stageIdx:0, grants:'lantern',
+    intro:['Привіт, лисичко Рудо! Я майструю святковий ліхтарик 🏮.','Та бракує матеріалів. Принеси <b>4 деревинки 🪵</b> на корпус.','Їх повно серед дерев.'],
     stages:[
-      {kind:'defeat',need:'bat',amount:1,boss:true,nag:'Кажанище ще кружляє на півночі. Подолай його!',
-        spawn:{enemy:'bat',count:1,at:[1728,250],boss:true},
-        cont:['Ти прогнала Кажанище! ✨','А тепер делікатна справа: вовки лякають усіх.','Принеси <b>3 ікла 🦷</b> вовків — зроблю обереги. Полюй на них у лісі.']},
-      {kind:'collect',need:'fang',amount:3,nag:'Для оберегів треба <b>3 ікла 🦷</b> — здобудь, долаючи вовків 🐺.'}],
-    done:['Обереги готові, вогники сяють! Дякую, смілива лисичко!'] },
+      {kind:'collect',need:'wood',amount:4,nag:'Для ліхтарика треба <b>4 🪵</b>.',
+        cont:['Чудові дощечки!','Тепер <b>3 горнятка меду 🍯</b> на воскову свічку — шукай біля ведмедя.']},
+      {kind:'collect',need:'honey',amount:3,nag:'Для свічки бракує меду — <b>3 🍯</b> (біля ведмедя).'}],
+    done:['*клац* Ліхтарик готовий і сяє! 🏮','Віднеси його Колючці — нехай прикрасить святкову арку!'] },
 
-  deer:{ giver:'deer', state:'new', stageIdx:0,
-    intro:['Ой, лисичко! Кабани 🐗 розрили галявину для танців!','Прожени <b>3 кабанів</b> (бий Space) — обережно, вони міцні!','Потім допоможеш прикрасити.'],
-    stages:[
-      {kind:'defeat',need:'boar',amount:3,nag:'Ще тупочуть кабани! Лишилось: {n} 🐗.',
-        spawn:{enemy:'boar',count:3,rel:true},
-        cont:['Хух, прогнала! Дякую.','Тепер прикрасьмо галявину — <b>5 квітів 🌸</b> з лугу неподалік.']},
-      {kind:'collect',need:'flower',amount:5,nag:'Для прикрас бракує квітів — <b>5 🌸</b> (західний луг).'}],
-    done:['Галявина — мов казкова! Тепер можна танцювати. Дякую, Рудо!'] },
-
-  badger:{ type:'talk', giver:'badger', state:'new', countAsOne:true, stageIdx:0,
-    intro:['Ох, лисичко, добре що завітала.','Я бабуся Борсуня, готую частування на свято.','Допоможеш бабусі?'],
-    choices:[{label:'Звісно, бабусю! З радістю 🌼'},{label:'Ну і чого тобі від мене треба?'}] },
-
-  hedgehog:{ type:'final', giver:'hedgehog', state:'new', finalNeed:{need:'flower',amount:5},
+  hedgehog:{ type:'final', giver:'hedgehog', state:'new', finalNeed:{need:'lantern',amount:1},
     intro:['Пчих! Вітаю, Рудо.','Я прикрашаю святкову арку, та спершу всі мають бути в безпеці.','Допоможи кожному другові — і повертайся!'],
     nag:'Ще не всі друзі в безпеці. Допоможи їм — і почнемо свято!',
-    ask:['Усіх врятовано — час прикрасити арку!','Принеси <b>5 квітів 🌸</b>, і запалимо святкові вогники!'],
-    done:['Арка засяяла квітами й вогниками!'] },
+    ask:['Усіх врятовано — час прикрасити арку!','Принеси святковий <b>ліхтарик 🏮</b> від Білки, і запалимо вогники!'],
+    done:['Ліхтарик засяяв на арці — яка краса!'] },
 };
-const order=['squirrel','bear','smith','rabbit','owl','deer','badger','hedgehog'];
+const order=['bear','deer','owl','smith','rabbit','squirrel','hedgehog'];
 function curStage(q){ return q.stages[q.stageIdx]; }
 function isDone(id){ return quests[id].state==='done'; }
 function othersDone(){ return order.filter(id=>id!=='hedgehog').every(isDone); }
@@ -837,9 +835,11 @@ function drawHUD(){ const done=progressDone(), panelW=Math.min(VW-24,480);
   ctx.fillStyle='#ffe27a'; ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText('Рів. '+player.level, 22, 92);
   ctx.fillStyle='rgba(0,0,0,.3)'; roundRect(82,82,130,11,5); ctx.fill();
   ctx.fillStyle='#8fd0ff'; roundRect(82,82,130*Math.min(1,player.xp/player.xpNext),11,5); ctx.fill();
-  if(inv.key>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🗝️ ключ у тебе', 22, 116); }
-  else if(LV&&!LV.delivered){ ctx.font='13px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.textAlign='left';
-    const txt=LV.following?('🏡 Веди '+LV.acc+' на галявину'):(order.every(isDone)?('🔎 Шукай '+LV.acc+' у дуплах · Shift — напрямок'):('🐾 Допоможи звірятам, тоді знайдеш '+LV.acc)); ctx.fillText(txt,22,116); }
+  let iy=116;
+  if(LV&&!LV.delivered){ ctx.font='13px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.textAlign='left';
+    const txt=LV.following?('🏡 Веди '+LV.acc+' на галявину'):(order.every(isDone)?('🔎 Шукай '+LV.acc+' у дуплах · Shift — напрямок'):('🐾 Допоможи звірятам, тоді знайдеш '+LV.acc)); ctx.fillText(txt,22,iy); iy+=22; }
+  if(inv.key>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🗝️ ключ у тебе', 22, iy); iy+=22; }
+  if(inv.lantern>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🏮 ліхтарик у тебе', 22, iy); }
   ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='12px Trebuchet MS'; ctx.fillText('Q — журнал · Space — удар хвостиком · Shift — понюхати', 22, VH-16);
   if(toastT>0&&toast){ const a=Math.min(1,toastT/0.4); ctx.globalAlpha=a; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
     const w=ctx.measureText(toast).width+40; ctx.fillStyle='rgba(20,40,28,.85)'; roundRect(VW/2-w/2,64,w,38,12); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(toast,VW/2,89); ctx.globalAlpha=1; ctx.textAlign='left'; }
