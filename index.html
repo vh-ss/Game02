@@ -126,19 +126,19 @@
 </svg>
 <div class="tscrim"></div>
 <div class="tcontent">
-  <h1><span class="emoji">🦊</span> Лісові Квести</h1>
-  <p>Ти — лисичка Руда. У великому чарівному лісі біда, а ще завелися дикі звірі — <b>вовки 🐺</b> та <b>кабани 🐗</b>!
+  <h1 id="t_h1"><span class="emoji">🦊</span> Лісові Квести</h1>
+  <p id="t_intro">Ти — лисичка Руда. У великому чарівному лісі біда, а ще завелися дикі звірі — <b>вовки 🐺</b> та <b>кабани 🐗</b>!
      Збирай, рятуй, кріпи дружбу й відбивайся хвостиком — і врятуй лісове свято.
      За перемоги над хижаками лисичка <b>зростає в рівні</b> й обирає нові хисти.</p>
-  <div class="keys">
+  <div class="keys" id="t_keys">
     <div class="key"><b>W A S D</b>рух</div>
     <div class="key"><b>Space</b>удар хвостиком</div>
     <div class="key"><b>E</b>дія / далі</div>
     <div class="key"><b>Shift</b>понюхати</div>
     <div class="key"><b>Q</b>журнал</div>
   </div>
-  <p style="font-size:14px;opacity:.85">Маркер над звірятком: <b>!</b> новий · <b>…</b> в процесі · <b>?</b> готово здати · <b>✓</b> виконано.</p>
-  <p style="font-size:13px;opacity:.7">📱 На весь екран: кнопка <b>⛶</b> у грі. На iPhone — «Поділитися» → «На екран Додому», і запускай з іконки.</p>
+  <p id="t_marker" style="font-size:14px;opacity:.85">Маркер над звірятком: <b>!</b> новий · <b>…</b> в процесі · <b>?</b> готово здати · <b>✓</b> виконано.</p>
+  <p id="t_full" style="font-size:13px;opacity:.7">📱 На весь екран: кнопка <b>⛶</b> у грі. На iPhone — «Поділитися» → «На екран Додому», і запускай з іконки.</p>
   <div class="langbar" id="langbar">
     <div class="langbtn active" data-lang="uk">Українська</div>
     <div class="langbtn" data-lang="en">English</div>
@@ -148,7 +148,7 @@
 </div>
 
 <div id="winScreen" class="overlay hidden">
-  <h1>🎉 Свято врятовано!</h1>
+  <h1 id="w_h1">🎉 Свято врятовано!</h1>
   <p id="winText">Усі звірята в безпеці, ключ викувано, злодіїв та хижаків прогнано, малюка визволено.
      Дякуючи тобі, лісове свято вдалося на славу!</p>
   <p id="winTime" style="font-size:16px;opacity:.85"></p>
@@ -275,7 +275,118 @@ const inv={ acorn:0,berry:0,ore:0,wood:0,flower:0,fang:0,honey:0,key:0,lantern:0
 const itemNames={ acorn:'жолудь',berry:'ягода',ore:'руда',wood:'деревинка',flower:'квітка',fang:'ікло',honey:'мед',key:'ключ',lantern:'ліхтарик' };
 const itemEmoji={ acorn:'🌰',berry:'🫐',ore:'⛏️',wood:'🪵',flower:'🌸',fang:'🦷',honey:'🍯',key:'🗝️',lantern:'🏮' };
 const enemyEmoji={ wasp:'🐝',bat:'🦇',boar:'🐗',wolf:'🐺',alpha:'🐺' };
-const enemyName={ wasp:'оса',bat:'Кажанище',boar:'кабан',wolf:'вовк',alpha:'Вожак вовків' };
+const enemyName={ wasp:'оса',bat:'Кажанище',boar:'кабан',wolf:'вовк',alpha:'Вожак вовків',grizzly:'Грізлі-блукач',tusker:'Вепр-іклань' };
+
+//------------------------------------------------------------------ мови (i18n)
+let LANG = (function(){ try{ return localStorage.getItem('fq_lang')||'uk'; }catch(e){ return 'uk'; } })();
+function tr(uk,en){ return LANG==='en'?en:uk; }
+function T(s){ if(LANG!=='en'||s==null) return s; return EN[s]!==undefined?EN[s]:s; }
+function TL(a){ return (LANG!=='en'||!a)?a:a.map(T); }
+const EN={
+// --- предмети / вороги / імена ---
+'жолудь':'acorn','ягода':'berry','руда':'ore','деревинка':'plank','квітка':'flower','ікло':'fang','мед':'honey','ключ':'key','ліхтарик':'lantern',
+'оса':'wasp','Кажанище':'Big Bat','кабан':'boar','вовк':'wolf','Вожак вовків':'Wolf Leader','Бос':'Boss',
+'Грізлі-блукач':'Wandering Grizzly','Вепр-іклань':'Tusker Boar',
+'Горішок':'Nutkin','Пугач':'Hooty','Бурко':'Bruin','Боброслав':'Beaverton','Стрибунець':'Hopper','Оленка':'Fawnia','Колючка':'Prickles',
+'Білка Шкрябка':'Scratch the Squirrel','Сова Вухань':'Hoot the Owl','Ведмідь Гудзь':'Bramble the Bear',
+'Зайчиха Лапка':'Paws the Rabbit','Олень Рогач':'Antler the Deer','Бобер Майстер':'Mason the Beaver','Борсук Сивень':'Greyfur the Badger',
+'Елон':'Elon','Елона':'Elon','Емма':'Emma','Емму':'Emma',
+// --- HUD / журнал / підказки ---
+'Завдань виконано':'Tasks done','Рів.':'Lv.','🗝️ ключ у тебе':'🗝️ you have the key','🏮 ліхтарик у тебе':'🏮 you have the lantern',
+'Q — журнал · Space — удар хвостиком · Shift — понюхати':'Q — quests · Space — tail swipe · Shift — sniff',
+'📜 Журнал квестів':'📜 Quest log','натисни  E':'press  E','E — оглянути':'E — search','🐾 Галявина':'🐾 Meadow','E — наступний рівень ▶':'E — next level ▶',
+'E / тап ▸ далі':'E / tap ▸ next','E / тап ▸ закрити':'E / tap ▸ close','обери відповідь — тап або клавіша 1 / 2':'choose a reply — tap or key 1 / 2',
+'💛 відновлено сердечко':'💛 heart restored','Ой! Перепочинь і спробуй знову 💛':'Ouch! Take a breather and try again 💛',
+'🕷️ Тут лише павуки — не той схов!':'🕷️ Just spiders here — wrong hollow!',
+'виконано':'done','не розпочато':'not started','поговори, щоб дізнатись':'talk to find out','усіх врятовано — поговори!':'all saved — talk!',
+'зібрати':'collect','прогнати ос (Space)':'drive off wasps (Space)','подолати Кажанище (Space)':'defeat the Big Bat (Space)',
+'визволити малюка з клітки':'free the little one from the cage','🗝️ є ключ':'🗝️ have key','потрібен 🗝️':'need 🗝️','прикрасити арку':'decorate the arch',
+'прогнати ворогів (Space)':'drive off enemies (Space)','перемога над босом (Space)':'defeat the boss (Space)','скрафтити':'craft','етап':'stage',
+// --- спільні діалоги ---
+'Дякую ще раз, Рудо! 🎉':'Thanks again, Ruda! 🎉','Скоро почнемо свято!':'The festival starts soon!',
+' ✨ Усі друзі врятовані! Свято! ✨':' ✨ All friends are safe! Festival time! ✨',
+' ✨ Усі квести виконано! Свято починається! ✨':' ✨ All quests complete! The festival begins! ✨',
+'':'',
+// --- Рівень 1 квести ---
+'Бурр! Оси-злодійки крадуть мій святковий мед!':'Grrr! Thieving wasps are stealing my festival honey!',
+'Розжени <b>5 ос 🐝</b> — бий хвостиком (Space).':'Drive off <b>5 wasps 🐝</b> — swipe your tail (Space).',
+'Покажи їм, хто тут головний!':'Show them who is boss!',
+'Ще літають оси! Лишилось: {n} 🐝.':'Wasps still buzzing! Left: {n} 🐝.',
+'Жодної оси — мед у безпеці! Дякую, хоробра лисичко!':'Not a single wasp — the honey is safe! Thank you, brave fox!',
+'Ой, лисичко! Кабани 🐗 розрили галявину для танців!':'Oh, fox! Boars 🐗 tore up our dancing meadow!',
+'Прожени <b>3 кабанів</b> (бий Space) — обережно, вони міцні!':'Drive off <b>3 boars</b> (Space) — careful, they are tough!',
+'Звільни галявину, будь ласка!':'Please clear the meadow!',
+'Ще тупочуть кабани! Лишилось: {n} 🐗.':'Boars still stomping! Left: {n} 🐗.',
+'Галявина вільна — можна танцювати! Дякую, Рудо!':'The meadow is clear — time to dance! Thank you, Ruda!',
+'Угу! Кажанище вкрало святкові вогники!':'Hoo! The Big Bat stole the festival lights!',
+'Прожени його, відважна лисичко — бий Space.':'Drive it off, brave fox — hit Space.',
+'Обережно: воно велике й кусюче!':'Careful: it is big and bitey!',
+'Кажанище ще кружляє на півночі. Подолай його!':'The Big Bat still circles in the north. Defeat it!',
+'Ти прогнала Кажанище — вогники сяють! Дякую, смілива лисичко! ✨':'You drove off the Big Bat — the lights shine! Thank you, brave fox! ✨',
+'Тук-тук! Я Боброслав, лісовий коваль.':'Tap-tap! I am Beaverton, the forest smith.',
+'Для святкового ключа потрібні матеріали.':'I need materials for the festival key.',
+'Принеси <b>3 руди ⛏️</b> — пошукай у скелях на сході.':'Bring <b>3 ore ⛏️</b> — look in the rocks to the east.',
+'Без руди ключа не викую — <b>3 ⛏️</b> (скелі на сході).':'No key without ore — <b>3 ⛏️</b> (rocks to the east).',
+'Чудова руда!':'Fine ore!','Тепер ще <b>4 деревинки 🪵</b> — їх повно по лісі.':'Now <b>4 planks 🪵</b> — plenty around the forest.',
+'Ще бракує дерева — <b>4 🪵</b>.':'Still short on wood — <b>4 🪵</b>.',
+'*дзинь-дзинь* Ось і ключ! 🗝️':'*clang-clang* Here is the key! 🗝️','Ним відчиниш клітку. Біжи рятувати малюка!':'Use it to open the cage. Go rescue the little one!',
+'Біда! Мого малюка замкнули у клітці на далекому сході!':'Help! My little one is locked in a cage far to the east!',
+'Ключ я загубив... Коваль Боброслав викує новий за руду й дерево.':'I lost the key... Smith Beaverton will forge a new one for ore and wood.',
+'Визволи синочка, благаю! 🗝️':'Free my son, I beg you! 🗝️',
+'Малюк ще у клітці на сході. Потрібен ключ 🗝️ від коваля Боброслава.':'The little one is still caged in the east. You need the key 🗝️ from smith Beaverton.',
+'Ти повернула мені синочка! Безмежно вдячний! 🐰':'You brought my son back! I am endlessly grateful! 🐰',
+'Привіт, лисичко Рудо! Я майструю святковий ліхтарик 🏮.':'Hi, fox Ruda! I am making a festival lantern 🏮.',
+'Та бракує матеріалів. Принеси <b>4 деревинки 🪵</b> на корпус.':'But I lack materials. Bring <b>4 planks 🪵</b> for the frame.',
+'Їх повно серед дерев.':'There are plenty among the trees.',
+'Для ліхтарика треба <b>4 🪵</b>.':'The lantern needs <b>4 🪵</b>.',
+'Чудові дощечки!':'Lovely planks!','Тепер <b>3 горнятка меду 🍯</b> на воскову свічку — шукай біля ведмедя.':'Now <b>3 pots of honey 🍯</b> for a wax candle — look near the bear.',
+'Для свічки бракує меду — <b>3 🍯</b> (біля ведмедя).':'The candle needs more honey — <b>3 🍯</b> (near the bear).',
+'*клац* Ліхтарик готовий і сяє! 🏮':'*click* The lantern is ready and glowing! 🏮','Віднеси його Колючці — нехай прикрасить святкову арку!':'Take it to Prickles — let her decorate the festival arch!',
+'Пчих! Вітаю, Рудо.':'Achoo! Hello, Ruda.',
+'Я прикрашаю святкову арку, та спершу всі мають бути в безпеці.':'I am decorating the festival arch, but first everyone must be safe.',
+'Допоможи кожному другові — і повертайся!':'Help every friend — then come back!',
+'Ще не всі друзі в безпеці. Допоможи їм — і почнемо свято!':'Not all friends are safe yet. Help them — and the festival begins!',
+'Усіх врятовано — час прикрасити арку!':'Everyone is saved — time to decorate the arch!',
+'Принеси святковий <b>ліхтарик 🏮</b> від Білки, і запалимо вогники!':'Bring the festival <b>lantern 🏮</b> from the Squirrel, and we will light it up!',
+'Ліхтарик засяяв на арці — яка краса!':'The lantern glows on the arch — beautiful!',
+// --- клітка ---
+'Клітка вже відчинена — малюк удома. 🐰':'The cage is already open — the little one is home. 🐰',
+'Тут замкнене зайченя...':'A little bunny is locked in here...','Спершу розпитай Стрибунця на південному заході.':'First ask Hopper in the south-west.',
+'Клітка міцно замкнена.':'The cage is firmly locked.','Потрібен ключ 🗝️ — його викує коваль Боброслав за руду й дерево.':'You need the key 🗝️ — smith Beaverton forges it for ore and wood.',
+'*клац* Клітка відчинилась!':'*click* The cage opened!','— Дякую, лисичко! — пискнуло зайченя й побігло до тата. 🐰💨':'— Thank you, fox! — squeaked the bunny and ran to its dad. 🐰💨',
+// --- Рівень 2 квести ---
+'Ой, лисичко! Я бачила хлопчика — він плакав і втік на схід.':'Oh, fox! I saw a boy — he cried and ran east.',
+'Та спершу прожени <b>4 павуки 🕷️</b> з мого дуба!':'But first drive <b>4 spiders 🕷️</b> off my oak!',
+'Ще повзають павуки! Лишилось: {n} 🕷️.':'Spiders still crawling! Left: {n} 🕷️.',
+'Дякую! Він із переляку розсипав жолуді.':'Thanks! He scattered acorns in his fright.','Назбирай <b>6 жолудів 🌰</b> — віддамо йому.':'Gather <b>6 acorns 🌰</b> — we will give them to him.',
+'Ще <b>6 жолудів 🌰</b> (захід лісу).':'Still <b>6 acorns 🌰</b> (west of the forest).',
+'Шукай малого в дуплистих деревах. 🌳':'Look for the boy in the hollow trees. 🌳',
+'Угу. Я бачила малого згори.':'Hoo. I saw the boy from above.','Принеси <b>5 квітів 🌸</b> для гнізда — і я розкажу більше.':'Bring <b>5 flowers 🌸</b> for the nest — and I will tell you more.',
+'Ще <b>5 квітів 🌸</b>.':'Still <b>5 flowers 🌸</b>.','Дякую! Тепер прожени <b>2 павуки 🕷️</b>, що лякають совенят.':'Thanks! Now drive off <b>2 spiders 🕷️</b> scaring the owlets.',
+'Ще <b>{n} 🕷️</b>!':'Still <b>{n} 🕷️</b>!','Малий ховається там, де тінь і тиша — у дуплі.':'The boy hides where it is shady and quiet — in a hollow.',
+'Бачив хлопчика — голодний, бідака.':'Saw the boy — hungry, poor thing.','Назбирай <b>4 меду 🍯</b> та <b>5 ягід 🫐</b> — підкріпимо його.':'Gather <b>4 honey 🍯</b> and <b>5 berries 🫐</b> — we will feed him.',
+'Ще <b>4 меду 🍯</b> (схід).':'Still <b>4 honey 🍯</b> (east).','Смакота! Тепер <b>5 ягід 🫐</b> з півдня.':'Yum! Now <b>5 berries 🫐</b> from the south.',
+'Ще <b>5 ягід 🫐</b> (південь).':'Still <b>5 berries 🫐</b> (south).','З медом він радо вийде з дупла. Дякую, Рудо!':'With honey he will gladly leave the hollow. Thank you, Ruda!',
+// --- Рівень 3 квести ---
+'Емма? Я бачила дівчинку біля струмка!':'Emma? I saw a girl by the brook!','Та тут завелися хижаки. Прожени <b>3 павуки 🕷️</b> і <b>2 гадюки 🐍</b>.':'But predators appeared. Drive off <b>3 spiders 🕷️</b> and <b>2 snakes 🐍</b>.',
+'Хух! Тепер <b>2 гадюки 🐍</b> — вони сичать у траві.':'Phew! Now <b>2 snakes 🐍</b> — they hiss in the grass.','Ще <b>{n} 🐍</b>!':'Still <b>{n} 🐍</b>!',
+'Стежка до струмка вільна. Шукай Емму в дуплах!':'The path to the brook is clear. Search the hollows for Emma!',
+'Емма втекла від рисі 🐱.':'Emma fled from a lynx 🐱.','Подолай <b>2 рисі</b> і принеси <b>6 квітів 🌸</b> для стежки.':'Defeat <b>2 lynxes</b> and bring <b>6 flowers 🌸</b> for the path.',
+'Ще <b>{n}</b> рисі 🐱!':'Still <b>{n}</b> lynx 🐱!','Сміливо! Тепер <b>6 квітів 🌸</b>.':'Brave! Now <b>6 flowers 🌸</b>.',
+'Ще <b>6 квітів 🌸</b>.':'Still <b>6 flowers 🌸</b>.','Дорога безпечніша. Дякую!':'The road is safer. Thank you!',
+'Бр-р, налетіли шершні!':'Brr, hornets swarmed in!','Прожени <b>4 шершні 🐝</b> і здолай <b>вепра-ікланя 🐗</b>.':'Drive off <b>4 hornets 🐝</b> and defeat the <b>Tusker Boar 🐗</b>.',
+'Ще <b>{n} 🐝</b>!':'Still <b>{n} 🐝</b>!','Молодець! Тепер <b>вепр-іклань 🐗</b> — обережно, важкий!':'Well done! Now the <b>Tusker Boar 🐗</b> — careful, it is tough!',
+'Вепр-іклань ще тут 🐗!':'The Tusker Boar is still here 🐗!','Шлях вільний. Дякую, лисичко!':'The way is clear. Thank you, fox!',
+'Гай стереже <b>Грізлі-блукач 🐻</b> — величезний і лютий.':'The grove is guarded by the <b>Wandering Grizzly 🐻</b> — huge and fierce.','Подолай його — і дістанешся до Емми!':'Defeat it — and you will reach Emma!',
+'Грізлі-блукач ще реве у гаю 🐻!':'The Wandering Grizzly still roars in the grove 🐻!','Ти подужала Грізлі?! Тепер ліс безпечний для Емми.':'You beat the Grizzly?! Now the forest is safe for Emma.',
+// --- пошук / дитина / доставка / інтро ---
+'Ти зазирнула в дупло...':'You peek into the hollow...','Десь тут чути тихеньке схлипування, але дитина боїться виходити.':'You hear faint sobbing nearby, but the child is afraid to come out.',
+'Спершу допоможи всім звірятам — тоді ':'First help all the animals — then ',' наважиться вийти.':' will dare to come out.',
+'Ти знайшла ':'You found ','! 🧒':'! 🧒','— Дякую, лисичко Рудо! Я загубився...':'— Thank you, fox Ruda! I got lost...','Веди мене на 🐾 галявину звірів!':'Lead me to the 🐾 animal meadow!',
+'Звірята схвильовані: лісом блукав <b>хлопчик Елон</b>. Він злякався павуків 🕷️ і сховався в дуплі. Виконуй прохання звірят, шукай по дуплах і приведи Елона на 🐾 галявину звірів!':'The animals are worried: a <b>boy named Elon</b> wandered the forest. He got scared of spiders 🕷️ and hid in a hollow. Do the animals’ requests, search the hollows and bring Elon to the 🐾 animal meadow!',
+'Елон згадав: разом гуляла його <b>сестричка Емма</b> — і теж заблукала! У лісі завелися <b>небезпечні звірі</b>. Знайди Емму, допомагаючи звірятам, і приведи на галявину.':'Elon remembered: his <b>little sister Emma</b> was with him — and got lost too! <b>Dangerous beasts</b> roam the forest. Find Emma while helping the animals, and bring her to the meadow.',
+};
+function trLevelDoneTitle(){ const m={1:tr('🎉 Свято врятовано!','🎉 Festival saved!'),2:tr('🎉 Елона врятовано!','🎉 Elon is saved!'),3:tr('🎉 Емму врятовано!','🎉 Emma is saved!')}; return m[curLevel]||''; }
 
 //------------------------------------------------------------------ квести (уніфіковані етапи)
 const quests={
@@ -393,7 +504,7 @@ function showToast(t){ toast=t; toastT=2.4; }
 function openDialog(lines,npc,opts){ dialog=Object.assign({lines,idx:0,npc},opts||{}); state='dialog'; }
 
 //------------------------------------------------------------------ взаємодія
-function nagText(st){ return st.nag.replace('{n}', Math.max(0,st.amount-inv[st.need])); }
+function nagText(st){ return T(st.nag).replace('{n}', Math.max(0,st.amount-inv[st.need])); }
 function activateStage(q){ const st=curStage(q); if(st.spawn && !st.spawned){ spawnGroup(st.spawn,npcById(q.giver)); st.spawned=true; } }
 
 function interact(npc){
@@ -466,10 +577,10 @@ function advanceDialog(){ if(!dialog||dialog.choosing) return; dialog.idx++;
   else sfx(520,.05,'square',.05); }
 function pickChoice(i){ if(!dialog||!dialog.choices) return; const o=dialog.choices[i]; if(!o) return;
   justPressed['e']=false; const fn=o.pick; dialog=null; state='play'; sfx(560,.08,'square',.1); if(fn) fn(); }
-function winGame(){ state='win'; document.getElementById('winScreen').classList.remove('hidden');
-  document.getElementById('winText').innerHTML='Свято врятовано, а Елона та Емму повернуто додому! Усі звірята й діти в безпеці. Дякуючи тобі — у лісі знову мир, дружба і свято! 🎉';
+function winGame(){ state='win'; document.getElementById('winScreen').classList.remove('hidden'); applyLang();
+  document.getElementById('winText').innerHTML=tr('Свято врятовано, а Елона та Емму повернуто додому! Усі звірята й діти в безпеці. Дякуючи тобі — у лісі знову мир, дружба і свято! 🎉','The festival is saved, and Elon and Emma are home again! All the animals and children are safe. Thanks to you — peace, friendship and celebration return to the forest! 🎉');
   const s=Math.floor((performance.now()-startTime)/1000);
-  document.getElementById('winTime').textContent=`Час пригоди: ${Math.floor(s/60)} хв ${(s%60).toString().padStart(2,'0')} с`; }
+  document.getElementById('winTime').textContent=tr('Час пригоди: ','Adventure time: ')+`${Math.floor(s/60)} `+tr('хв','min')+` ${(s%60).toString().padStart(2,'0')} `+tr('с','sec'); }
 
 //------------------------------------------------------------------ оновлення
 function update(dt){
@@ -501,14 +612,14 @@ function update(dt){
         if(e.hp<=0){ e.alive=false; inv[e.tag]++;
           if(e.drop){ itemDefs.push({type:e.drop,x:e.x,y:e.y,got:false,bob:Math.random()*6}); }
           gainXP(XPVAL[e.tag]||4); sfx(110,.2,'sawtooth',.14);
-          showToast(e.boss?(enemyEmoji[e.tag]+' '+enemyName[e.tag]+' подолано!'):enemyEmoji[e.tag]+' переможено'+(e.drop?'  ·  випало 🦷':'')); } }
+          showToast(e.boss?(enemyEmoji[e.tag]+' '+T(enemyName[e.tag]||'Бос')+tr(' подолано!',' defeated!')):enemyEmoji[e.tag]+tr(' переможено',' beaten')+(e.drop?tr('  ·  випало 🦷','  ·  dropped 🦷'):'')); } }
     }
   }
 
   // предмети
   for(const it of itemDefs){ if(it.got) continue;
     if(Math.hypot(it.x-player.x,it.y-player.y)<26){ it.got=true; inv[it.type]++;
-      sfx(700+Math.random()*120,.12,'triangle',.16); showToast(`${itemEmoji[it.type]}  +1 ${itemNames[it.type]}`); } }
+      sfx(700+Math.random()*120,.12,'triangle',.16); showToast(`${itemEmoji[it.type]}  +1 ${T(itemNames[it.type])}`); } }
 
   // вороги
   if(player.iframes>0) player.iframes-=dt;
@@ -734,9 +845,9 @@ function drawNpc(n){ const bob=Math.sin(n.bob)*2; shadow(n.x,n.y+14,16); ctx.sav
   else { mark=readyTurnIn(q)?'?':'…'; col=readyTurnIn(q)?'#7CFC68':'#ffd23f'; }
   const my=n.y-44+Math.sin(n.bob)*2;
   ctx.fillStyle=col; ctx.font='bold 22px Trebuchet MS'; ctx.textAlign='center'; ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.lineWidth=4; ctx.strokeText(mark,n.x,my); ctx.fillText(mark,n.x,my); ctx.textAlign='left';
-  if(player.nearNpc===n){ ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='center'; const w=ctx.measureText(n.name).width+16;
-    ctx.fillStyle='rgba(20,40,28,.78)'; roundRect(n.x-w/2,n.y-72,w,20,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(n.name,n.x,n.y-58);
-    ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='12px Trebuchet MS'; ctx.fillText('натисни  E',n.x,n.y+30); ctx.textAlign='left'; } }
+  if(player.nearNpc===n){ ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='center'; const nm=T(n.name); const w=ctx.measureText(nm).width+16;
+    ctx.fillStyle='rgba(20,40,28,.78)'; roundRect(n.x-w/2,n.y-72,w,20,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(nm,n.x,n.y-58);
+    ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='12px Trebuchet MS'; ctx.fillText(T('натисни  E'),n.x,n.y+30); ctx.textAlign='left'; } }
 
 function ear(x,y,a,col){ ctx.fillStyle=col; ctx.save(); ctx.translate(x,y); ctx.rotate(a); ctx.beginPath(); ctx.ellipse(0,-8,4,9,0,0,7); ctx.fill(); ctx.restore(); }
 function eyes(lx,ly,rx,ry){ ctx.fillStyle='#241812'; ctx.beginPath(); ctx.arc(lx,ly,2,0,7); ctx.arc(rx,ry,2,0,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(lx+.7,ly-.7,.7,0,7); ctx.arc(rx+.7,ry-.7,.7,0,7); ctx.fill(); }
@@ -827,62 +938,62 @@ function drawCompass(){ let tgt=null,col,td=1e9;
 //------------------------------------------------------------------ HUD
 function drawHUD(){ const done=progressDone(), panelW=Math.min(VW-24,480);
   ctx.fillStyle='rgba(20,40,28,.72)'; roundRect(12,12,panelW,38,12); ctx.fill();
-  ctx.fillStyle='#ffd23f'; ctx.font='bold 16px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText((curLevel>1?('Рів.'+curLevel+' · '):'🌟 ')+'Завдань: '+done+' / '+TOTAL, 26, 36);
+  ctx.fillStyle='#ffd23f'; ctx.font='bold 16px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText((curLevel>1?(tr('Рів.','Lv.')+curLevel+' · '):'🌟 ')+tr('Завдань','Tasks')+': '+done+' / '+TOTAL, 26, 36);
   const bx=300,bw=panelW-310; if(bw>40){ ctx.fillStyle='rgba(0,0,0,.3)'; roundRect(bx,22,bw,16,8); ctx.fill(); ctx.fillStyle='#7CFC68'; roundRect(bx,22,bw*done/TOTAL,16,8); ctx.fill(); }
   for(let i=0;i<player.maxHp;i++){ const hx=22+i*22, hy=64, full=i<player.hp; ctx.fillStyle=full?'#ff5a6a':'rgba(255,255,255,.18)';
     ctx.beginPath(); ctx.moveTo(hx,hy+6); ctx.bezierCurveTo(hx-8,hy-2,hx-5,hy-9,hx,hy-4); ctx.bezierCurveTo(hx+5,hy-9,hx+8,hy-2,hx,hy+6); ctx.fill(); }
   // рівень + досвід
-  ctx.fillStyle='#ffe27a'; ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText('Рів. '+player.level, 22, 92);
+  ctx.fillStyle='#ffe27a'; ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(tr('Рів. ','Lv. ')+player.level, 22, 92);
   ctx.fillStyle='rgba(0,0,0,.3)'; roundRect(82,82,130,11,5); ctx.fill();
   ctx.fillStyle='#8fd0ff'; roundRect(82,82,130*Math.min(1,player.xp/player.xpNext),11,5); ctx.fill();
   let iy=116;
-  if(LV&&!LV.delivered){ ctx.font='13px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.textAlign='left';
-    const txt=LV.following?('🏡 Веди '+LV.acc+' на галявину'):(order.every(isDone)?('🔎 Шукай '+LV.acc+' у дуплах · Shift — напрямок'):('🐾 Допоможи звірятам, тоді знайдеш '+LV.acc)); ctx.fillText(txt,22,iy); iy+=22; }
-  if(inv.key>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🗝️ ключ у тебе', 22, iy); iy+=22; }
-  if(inv.lantern>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText('🏮 ліхтарик у тебе', 22, iy); }
-  ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='12px Trebuchet MS'; ctx.fillText('Q — журнал · Space — удар хвостиком · Shift — понюхати', 22, VH-16);
-  if(toastT>0&&toast){ const a=Math.min(1,toastT/0.4); ctx.globalAlpha=a; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
-    const w=ctx.measureText(toast).width+40; ctx.fillStyle='rgba(20,40,28,.85)'; roundRect(VW/2-w/2,64,w,38,12); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(toast,VW/2,89); ctx.globalAlpha=1; ctx.textAlign='left'; }
+  if(LV&&!LV.delivered){ ctx.font='13px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.textAlign='left'; const nm=T(LV.acc);
+    const txt=LV.following?tr('🏡 Веди '+nm+' на галявину','🏡 Lead '+nm+' to the meadow'):(order.every(isDone)?tr('🔎 Шукай '+nm+' у дуплах · Shift — напрямок','🔎 Search hollows for '+nm+' · Shift — direction'):tr('🐾 Допоможи звірятам, тоді знайдеш '+nm,'🐾 Help the animals, then find '+nm)); ctx.fillText(txt,22,iy); iy+=22; }
+  if(inv.key>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText(T('🗝️ ключ у тебе'), 22, iy); iy+=22; }
+  if(inv.lantern>0){ ctx.font='15px Trebuchet MS'; ctx.fillStyle='#ffe27a'; ctx.fillText(T('🏮 ліхтарик у тебе'), 22, iy); }
+  ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='12px Trebuchet MS'; ctx.fillText(T('Q — журнал · Space — удар хвостиком · Shift — понюхати'), 22, VH-16);
+  if(toastT>0&&toast){ const a=Math.min(1,toastT/0.4); ctx.globalAlpha=a; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center'; const tt=T(toast);
+    const w=ctx.measureText(tt).width+40; ctx.fillStyle='rgba(20,40,28,.85)'; roundRect(VW/2-w/2,64,w,38,12); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(tt,VW/2,89); ctx.globalAlpha=1; ctx.textAlign='left'; }
   if(questLogOpen) drawQuestLog(); if(state==='dialog'&&dialog) drawDialog();
 }
 function questStatusText(id){ const q=quests[id];
-  if(q.state==='done') return {task:'виконано',st:'✓',col:'#7CFC68'};
-  if(q.type==='final'){ if(!othersDone()) return {task:'спершу врятуй усіх друзів',st: q.state==='new'?'':'…',col:'rgba(255,255,255,.6)'};
-    return {task:`прикрасити арку: ${q.finalNeed.amount} × квітка`, st:`🌸 ${Math.min(inv.flower,q.finalNeed.amount)}/${q.finalNeed.amount}`, col:'#ffd23f'}; }
-  if(q.type==='rescue'){ if(q.state==='new') return {task:'поговори, щоб дізнатись',st:'',col:'rgba(255,255,255,.5)'};
-    return {task:'визволити малюка з клітки', st: inv.key>0?'🗝️ є ключ':'потрібен 🗝️', col:'#8fd0ff'}; }
-  if(q.state==='new') return {task:'поговори, щоб дізнатись',st:'',col:'rgba(255,255,255,.5)'};
-  const st=curStage(q), si=`(етап ${q.stageIdx+1}/${q.stages.length})`;
-  if(st.kind==='collect') return {task:`зібрати ${st.amount} × ${itemNames[st.need]} ${si}`, st:`${itemEmoji[st.need]} ${Math.min(inv[st.need],st.amount)}/${st.amount}`, col:'#ffd23f'};
-  return {task:`подолати ${enemyName[st.need]} ${si}`, st:`${enemyEmoji[st.need]} ${Math.min(inv[st.need],st.amount)}/${st.amount}`, col:'#ff8a6a'};
+  if(q.state==='done') return {task:tr('виконано','done'),st:'✓',col:'#7CFC68'};
+  if(q.type==='final'){ if(!othersDone()) return {task:tr('спершу врятуй усіх друзів','first save all friends'),st: q.state==='new'?'':'…',col:'rgba(255,255,255,.6)'};
+    const fn=q.finalNeed; return {task:tr('прикрасити арку','decorate the arch')+`: ${fn.amount} × ${T(itemNames[fn.need])}`, st:`${itemEmoji[fn.need]} ${Math.min(inv[fn.need],fn.amount)}/${fn.amount}`, col:'#ffd23f'}; }
+  if(q.type==='rescue'){ if(q.state==='new') return {task:T('поговори, щоб дізнатись'),st:'',col:'rgba(255,255,255,.5)'};
+    return {task:T('визволити малюка з клітки'), st: inv.key>0?T('🗝️ є ключ'):T('потрібен 🗝️'), col:'#8fd0ff'}; }
+  if(q.state==='new') return {task:T('поговори, щоб дізнатись'),st:'',col:'rgba(255,255,255,.5)'};
+  const st=curStage(q), si=`(${tr('етап','stage')} ${q.stageIdx+1}/${q.stages.length})`;
+  if(st.kind==='collect') return {task:tr('зібрати','collect')+` ${st.amount} × ${T(itemNames[st.need])} ${si}`, st:`${itemEmoji[st.need]} ${Math.min(inv[st.need],st.amount)}/${st.amount}`, col:'#ffd23f'};
+  return {task:tr('подолати','defeat')+` ${T(enemyName[st.need]||tr('ворога','enemy'))} ${si}`, st:`${enemyEmoji[st.need]||'⚔️'} ${Math.min(inv[st.need],st.amount)}/${st.amount}`, col:'#ff8a6a'};
 }
 function drawQuestLog(){ const w=Math.min(420,VW-40), h=order.length*50+70, x=VW-w-16, y=64;
   ctx.fillStyle='rgba(18,36,25,.92)'; roundRect(x,y,w,h,16); ctx.fill(); ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#ffd23f'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText('📜 Журнал квестів', x+18, y+30);
+  ctx.fillStyle='#ffd23f'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(T('📜 Журнал квестів'), x+18, y+30);
   order.forEach((id,i)=>{ const n=npcById(id), info=questStatusText(id), yy=y+54+i*50;
-    ctx.fillStyle='#fff'; ctx.font='bold 14px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(n.name+(isDone(id)?' 😊':''), x+18, yy);
+    ctx.fillStyle='#fff'; ctx.font='bold 14px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(T(n.name)+(isDone(id)?' 😊':''), x+18, yy);
     ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='12px Trebuchet MS'; ctx.fillText(info.task, x+18, yy+16);
     ctx.fillStyle=info.col; ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='right'; ctx.fillText(info.st, x+w-18, yy+7); ctx.textAlign='left'; }); }
 
 function drawDialog(){ const w=Math.min(640,VW-40),h=160,x=VW/2-w/2,y=VH-h-24;
   ctx.fillStyle='rgba(14,28,20,.94)'; roundRect(x,y,w,h,18); ctx.fill(); ctx.strokeStyle='rgba(255,210,63,.5)'; ctx.lineWidth=2; ctx.stroke();
-  const n=dialog.npc; ctx.fillStyle='#ffd23f'; ctx.font='bold 19px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(n.name,x+108,y+34);
+  const n=dialog.npc; ctx.fillStyle='#ffd23f'; ctx.font='bold 19px Trebuchet MS'; ctx.textAlign='left'; ctx.fillText(T(n.name),x+108,y+34);
   ctx.save(); ctx.translate(x+52,y+82); ctx.scale(1.3,1.3); drawNpcSprite(n); ctx.restore();
   ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.beginPath(); ctx.moveTo(x+100,y+16); ctx.lineTo(x+100,y+h-16); ctx.stroke();
-  drawRichText(dialog.lines[dialog.idx]||'', x+116, y+62, w-140);
+  drawRichText(T(dialog.lines[dialog.idx]||''), x+116, y+62, w-140);
   if(dialog.choosing && dialog.choices){
     dialog._rects=[]; const oh=40, gap=8, n=dialog.choices.length, oy=y-n*(oh+gap)-6;
     for(let i=0;i<n;i++){ const ry=oy+i*(oh+gap);
       ctx.fillStyle='rgba(20,40,28,.96)'; roundRect(x,ry,w,oh,11); ctx.fill();
       ctx.strokeStyle='#ffd23f'; ctx.lineWidth=2; ctx.stroke();
       ctx.fillStyle='#ffe27a'; ctx.font='bold 15px Trebuchet MS'; ctx.textAlign='left';
-      ctx.fillText((i+1)+'.  '+dialog.choices[i].label, x+18, ry+25);
+      ctx.fillText((i+1)+'.  '+T(dialog.choices[i].label), x+18, ry+25);
       dialog._rects.push({x:x,y:ry,w:w,h:oh,i:i}); }
     ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='12px Trebuchet MS'; ctx.textAlign='right';
-    ctx.fillText('обери відповідь — тап або клавіша 1 / 2', x+w-18, y+h-16); ctx.textAlign='left';
+    ctx.fillText(T('обери відповідь — тап або клавіша 1 / 2'), x+w-18, y+h-16); ctx.textAlign='left';
   } else {
     const blink=Math.sin(performance.now()/250)>0; ctx.fillStyle=blink?'#ffd23f':'rgba(255,210,63,.4)'; ctx.font='13px Trebuchet MS'; ctx.textAlign='right';
-    ctx.fillText(dialog.idx<dialog.lines.length-1?'E / тап ▸ далі':'E / тап ▸ закрити', x+w-18, y+h-16); ctx.textAlign='left'; } }
+    ctx.fillText(T(dialog.idx<dialog.lines.length-1?'E / тап ▸ далі':'E / тап ▸ закрити'), x+w-18, y+h-16); ctx.textAlign='left'; } }
 function drawRichText(text,x,y,maxW){ const parts=[]; let bold=false,buf='';
   for(let i=0;i<text.length;i++){ if(text.substr(i,3)==='<b>'){ if(buf){parts.push({t:buf,b:bold});buf='';} bold=true; i+=2; }
     else if(text.substr(i,4)==='</b>'){ if(buf){parts.push({t:buf,b:bold});buf='';} bold=false; i+=3; } else buf+=text[i]; }
@@ -893,13 +1004,13 @@ function drawRichText(text,x,y,maxW){ const parts=[]; let bold=false,buf='';
 //------------------------------------------------------------------ прокачка лисички
 const XPVAL={ wasp:3, wolf:6, boar:9, bat:25, alpha:40 };
 const UPGRADES=[
-  {icon:'❤️',name:'Міцне серце',desc:'+1 максимальне здоров’я',apply:()=>{ player.maxHp++; player.hp=Math.min(player.maxHp,player.hp+1); }},
-  {icon:'🌀',name:'Сильний удар',desc:'+1 шкода від удару хвостиком',apply:()=>{ player.dmg++; }},
-  {icon:'👟',name:'Прудкі лапки',desc:'+12% швидкість бігу',apply:()=>{ player.speed*=1.12; }},
-  {icon:'🦊',name:'Довгий хвіст',desc:'+18% дальність удару',apply:()=>{ player.reach*=1.18; }},
-  {icon:'⚡',name:'Швидкий удар',desc:'−15% перезарядка удару',apply:()=>{ player.atkCdMax*=0.85; }},
-  {icon:'💛',name:'Жвавість',desc:'швидше відновлюються сердечка',apply:()=>{ player.regenEvery=Math.max(2.5,player.regenEvery-1.6); }},
-  {icon:'🛡️',name:'Загартування',desc:'довша невразливість після удару',apply:()=>{ player.iHit+=0.4; }},
+  {icon:'❤️',name:'Міцне серце',en:'Strong heart',desc:'+1 максимальне здоров’я',ed:'+1 max health',apply:()=>{ player.maxHp++; player.hp=Math.min(player.maxHp,player.hp+1); }},
+  {icon:'🌀',name:'Сильний удар',en:'Strong swipe',desc:'+1 шкода від удару хвостиком',ed:'+1 tail-swipe damage',apply:()=>{ player.dmg++; }},
+  {icon:'👟',name:'Прудкі лапки',en:'Quick paws',desc:'+12% швидкість бігу',ed:'+12% run speed',apply:()=>{ player.speed*=1.12; }},
+  {icon:'🦊',name:'Довгий хвіст',en:'Long tail',desc:'+18% дальність удару',ed:'+18% swipe reach',apply:()=>{ player.reach*=1.18; }},
+  {icon:'⚡',name:'Швидкий удар',en:'Fast swipe',desc:'−15% перезарядка удару',ed:'−15% swipe cooldown',apply:()=>{ player.atkCdMax*=0.85; }},
+  {icon:'💛',name:'Жвавість',en:'Vitality',desc:'швидше відновлюються сердечка',ed:'hearts regenerate faster',apply:()=>{ player.regenEvery=Math.max(2.5,player.regenEvery-1.6); }},
+  {icon:'🛡️',name:'Загартування',en:'Toughness',desc:'довша невразливість після удару',ed:'longer invulnerability after a hit',apply:()=>{ player.iHit+=0.4; }},
 ];
 let levelQueue=0;
 function gainXP(n){ player.xp+=n; let up=false;
@@ -910,9 +1021,10 @@ function openLevelUp(){ state='levelup'; touch.active=false; touch.dx=0; touch.d
   const pool=UPGRADES.slice();
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
   const pick=pool.slice(0,3), box=document.getElementById('lvlCards'); box.innerHTML='';
-  document.getElementById('lvlNum').textContent=player.level;
+  const ls=document.getElementById('levelScreen'); ls.querySelector('h1').textContent=tr('⭐ Рівень '+player.level+'!','⭐ Level '+player.level+'!');
+  const ps=ls.querySelectorAll('p'); ps[0].textContent=tr('Лисичка стала сильнішою. Обери новий хист:','The fox grew stronger. Choose a new skill:'); ps[1].textContent=tr('Натисни картку або клавішу 1 / 2 / 3','Tap a card or press key 1 / 2 / 3');
   pick.forEach((u,idx)=>{ const c=document.createElement('div'); c.className='card';
-    c.innerHTML='<div class="ci">'+u.icon+'</div><div class="cn">'+u.name+'</div><div class="cd">'+u.desc+'</div><div class="ck">'+(idx+1)+'</div>';
+    c.innerHTML='<div class="ci">'+u.icon+'</div><div class="cn">'+tr(u.name,u.en)+'</div><div class="cd">'+tr(u.desc,u.ed)+'</div><div class="ck">'+(idx+1)+'</div>';
     c.addEventListener('click',()=>chooseUpgrade(u)); box.appendChild(c); });
   document.getElementById('levelScreen').classList.remove('hidden'); chime(); }
 function chooseUpgrade(u){ u.apply(); player.regenT=0; player.iframes=Math.max(player.iframes,0.6);
@@ -1014,7 +1126,7 @@ function drawBeast(e){ const t=e.type;
   if(e.boss||e.maxHp>=8){ const w=e.boss?56:40; ctx.fillStyle='rgba(0,0,0,.5)'; roundRect(-w/2,-e.r-22,w,6,3); ctx.fill();
     ctx.fillStyle=e.boss?'#ff2e1e':'#ff7a5a'; roundRect(-w/2,-e.r-22,w*Math.max(0,e.hp/e.maxHp),6,3); ctx.fill(); }
   if(e.boss){ ctx.fillStyle='#ffd23f'; ctx.font='bold 12px Trebuchet MS'; ctx.textAlign='center'; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=3;
-    ctx.strokeText(enemyName[e.type]||'Бос',0,-e.r-26); ctx.fillText(enemyName[e.type]||'Бос',0,-e.r-26); ctx.textAlign='left'; } }
+    const bn=T(enemyName[e.type]||'Бос'); ctx.strokeText(bn,0,-e.r-26); ctx.fillText(bn,0,-e.r-26); ctx.textAlign='left'; } }
 
 // дані рівнів
 const INTROS={
@@ -1126,23 +1238,23 @@ function loadLevel(n){ const cfg=LEVELS[n]; curLevel=n;
   recomputeTotal();
   player.x=cfg.start.x; player.y=cfg.start.y; player.hp=player.maxHp; player.iframes=1.2; player.regenT=0;
   questLogOpen=false; toastT=0; dialog=null; levelQueue=0; state='play'; startTime=performance.now();
-  showToast('Рівень '+n+': знайди '+cfg.childName+'!');
+  showToast(tr('Рівень '+n+': знайди '+cfg.childName+'!','Level '+n+': find '+T(cfg.childName)+'!'));
 }
 function completeLevel(){ if(curLevel>=TOTAL_LEVELS){ winGame(); return; } showLevelDone(); }
 function showLevelDone(){ state='levelDone'; const nxt=curLevel+1;
-  document.getElementById('lvDoneTitle').textContent = curLevel===1?'🎉 Свято врятовано!':('🎉 '+(curLevel===2?'Елона':'Емму')+' врятовано!');
-  document.getElementById('lvDoneText').innerHTML = INTROS[nxt]||'';
-  document.getElementById('lvDoneBtn').textContent = '▶ Рівень '+nxt;
+  document.getElementById('lvDoneTitle').textContent = trLevelDoneTitle();
+  document.getElementById('lvDoneText').innerHTML = T(INTROS[nxt]||'');
+  document.getElementById('lvDoneBtn').textContent = tr('▶ Рівень ','▶ Level ')+nxt;
   document.getElementById('levelDoneScreen').classList.remove('hidden'); }
 function childNpc(){ return {id:'child', spr:LV.key, name:LV.name}; }
 function searchSpot(s){
   if(!order.every(isDone)){
-    openDialog(['Ти зазирнула в дупло...','Десь тут чути тихеньке схлипування, але дитина боїться виходити.','Спершу допоможи всім звірятам — тоді '+LV.name+' наважиться вийти.'],childNpc());
+    openDialog([tr('Ти зазирнула в дупло...','You peek into the hollow...'),tr('Десь тут чути тихеньке схлипування, але дитина боїться виходити.','You hear faint sobbing nearby, but the child is afraid to come out.'),tr('Спершу допоможи всім звірятам — тоді '+LV.name+' наважиться вийти.','First help all the animals — then '+T(LV.name)+' will dare to come out.')],childNpc());
     return;   // до виконання квестів дупла не «витрачаються»
   }
   if(s.isChild){
     LV.childFound=true; LV.following=true; LV.child.x=s.x; LV.child.y=s.y+12; LV.child.anim=0;
-    openDialog(['Ти знайшла '+LV.acc+'! 🧒','— Дякую, лисичко Рудо! Я загубився...','Веди мене на 🐾 галявину звірів!'],childNpc(),{reward:true}); chime();
+    openDialog([tr('Ти знайшла '+LV.acc+'! 🧒','You found '+T(LV.acc)+'! 🧒'),tr('— Дякую, лисичко Рудо! Я загубився...','— Thank you, fox Ruda! I got lost...'),tr('Веди мене на 🐾 галявину звірів!','Lead me to the 🐾 animal meadow!')],childNpc(),{reward:true}); chime();
   } else { s.searched=true; showToast('🕷️ Тут лише павуки — не той схов!'); sfx(160,.15,'sawtooth',.14);
     for(let i=0;i<2;i++) enemies.push(makeEnemy('spider',clamp(s.x+(Math.random()-.5)*50,60,WORLD_W-60),clamp(s.y+(Math.random()-.5)*50,60,WORLD_H-60))); }
 }
@@ -1152,25 +1264,25 @@ function childFollowDeliver(dt){ if(!LV||!LV.following||LV.delivered) return;
   if(Math.hypot(tx-LV.child.x,ty-LV.child.y)>3) LV.child.anim+=dt*9;
   if(Math.hypot(LV.child.x-LV.clearing.x,LV.child.y-LV.clearing.y)<64) deliverChild(); }
 function deliverChild(){ LV.delivered=true; LV.following=false;
-  let lines=['🎉 '+LV.name+' удома, на галявині звірів!'];
-  if(curLevel===2) lines=lines.concat(['— Дякую, лисичко! Але... моя сестричка Емма теж пішла гуляти й заблукала!','Треба знайти і її.']);
-  else lines=lines.concat(['Уся родина в безпеці. Звірята святкують! 🥳']);
+  let lines=[tr('🎉 '+LV.name+' удома, на галявині звірів!','🎉 '+T(LV.name)+' is home at the animal meadow!')];
+  if(curLevel===2) lines=lines.concat([tr('— Дякую, лисичко! Але... моя сестричка Емма теж пішла гуляти й заблукала!','— Thank you, fox! But... my little sister Emma went out too and got lost!'),tr('Треба знайти і її.','We must find her too.')]);
+  else lines=lines.concat([tr('Уся родина в безпеці. Звірята святкують! 🥳','The whole family is safe. The animals are celebrating! 🥳')]);
   openDialog(lines,childNpc(),{reward:true,final:true}); chime(); }
 function drawChild(c){ const bob=Math.sin(c.anim)*2.5; shadow(c.x,c.y+16,12); ctx.save(); ctx.translate(c.x,c.y+bob);
   (LV.key==='emma'?drawEmma:drawElon)();
-  ctx.font='bold 11px Trebuchet MS'; const w=ctx.measureText(LV.name).width+12;
+  ctx.font='bold 11px Trebuchet MS'; const nm=T(LV.name); const w=ctx.measureText(nm).width+12;
   ctx.fillStyle='rgba(20,40,28,.7)'; roundRect(-w/2,-44,w,16,6); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.fillText(LV.name,0,-32); ctx.textAlign='left'; ctx.restore(); }
+  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.fillText(nm,0,-32); ctx.textAlign='left'; ctx.restore(); }
 function drawLevelGround(){ if(!LV) return; const cx=LV.clearing.x, cy=LV.clearing.y;
   ctx.fillStyle='rgba(255,210,63,.16)'; ctx.beginPath(); ctx.arc(cx,cy,60,0,7); ctx.fill();
   ctx.strokeStyle='rgba(255,210,63,.55)'; ctx.lineWidth=3; ctx.setLineDash([9,9]); ctx.beginPath(); ctx.arc(cx,cy,60,0,7); ctx.stroke(); ctx.setLineDash([]);
   ctx.fillStyle='#7a4a25'; ctx.fillRect(cx-2,cy-44,4,30); ctx.fillStyle='#caa46a'; roundRect(cx-30,cy-60,60,18,4); ctx.fill();
-  ctx.fillStyle='#3a2014'; ctx.font='bold 11px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('🐾 Галявина',cx,cy-47); ctx.textAlign='left';
+  ctx.fillStyle='#3a2014'; ctx.font='bold 11px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText(T('🐾 Галявина'),cx,cy-47); ctx.textAlign='left';
   if(!LV.childFound) for(const s of LV.spots){ if(s.searched&&!s.isChild) continue; shadow(s.x,s.y+8,16);
     ctx.fillStyle='#2f6a3c'; ctx.beginPath(); ctx.arc(s.x-8,s.y,12,0,7); ctx.arc(s.x+8,s.y,12,0,7); ctx.arc(s.x,s.y-8,13,0,7); ctx.fill();
     ctx.fillStyle='#13301c'; ctx.beginPath(); ctx.ellipse(s.x,s.y,6,8,0,0,7); ctx.fill();
     if(Math.hypot(s.x-player.x,s.y-player.y)<74){ ctx.fillStyle='#ffd23f'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('?',s.x,s.y-24);
-      ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='12px Trebuchet MS'; ctx.fillText('E — оглянути',s.x,s.y+32); ctx.textAlign='left'; } }
+      ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='12px Trebuchet MS'; ctx.fillText(T('E — оглянути'),s.x,s.y+32); ctx.textAlign='left'; } }
   if(keys['shift'] && !LV.childFound && order.every(isDone)){
     let best=null,bd=1e9; for(const s of LV.spots){ if(s.searched) continue; const d=Math.hypot(s.x-player.x,s.y-player.y); if(d<bd){bd=d;best=s;} }
     if(best && bd>90){ const ang=Math.atan2(best.y-player.y,best.x-player.x), rx=player.x+Math.cos(ang)*80, ry=player.y+Math.sin(ang)*80;
@@ -1222,6 +1334,25 @@ canvas.addEventListener('pointerdown',e=>{
 });
 document.getElementById('startBtn').addEventListener('click',startGame);
 document.getElementById('againBtn').addEventListener('click',()=>location.reload());
+//------------------------------------------------------------------ перемикач мови
+function setEl(id,html){ const e=document.getElementById(id); if(e) e.innerHTML=html; }
+function applyLang(){
+  try{ localStorage.setItem('fq_lang',LANG); }catch(e){}
+  document.querySelectorAll('.langbtn').forEach(b=>b.classList.toggle('active', b.dataset.lang===LANG));
+  setEl('t_h1', tr('<span class="emoji">🦊</span> Лісові Квести','<span class="emoji">🦊</span> Forest Quests'));
+  setEl('t_intro', tr('Ти — лисичка Руда. У великому чарівному лісі біда, а ще завелися дикі звірі — <b>вовки 🐺</b> та <b>кабани 🐗</b>! Збирай, рятуй, кріпи дружбу й відбивайся хвостиком — і врятуй лісове свято. За перемоги над хижаками лисичка <b>зростає в рівні</b> й обирає нові хисти.',
+    'You are Ruda the fox. The great enchanted forest is in trouble, and wild beasts — <b>wolves 🐺</b> and <b>boars 🐗</b> — have appeared! Gather, rescue, make friends and fight with your tail — and save the forest festival. Beating predators makes the fox <b>level up</b> and choose new skills.'));
+  setEl('t_keys', tr('<div class="key"><b>W A S D</b>рух</div><div class="key"><b>Space</b>удар хвостиком</div><div class="key"><b>E</b>дія / далі</div><div class="key"><b>Shift</b>понюхати</div><div class="key"><b>Q</b>журнал</div>',
+    '<div class="key"><b>W A S D</b>move</div><div class="key"><b>Space</b>tail swipe</div><div class="key"><b>E</b>action / next</div><div class="key"><b>Shift</b>sniff</div><div class="key"><b>Q</b>quests</div>'));
+  setEl('t_marker', tr('Маркер над звірятком: <b>!</b> новий · <b>…</b> в процесі · <b>?</b> готово здати · <b>✓</b> виконано.','Marker above an animal: <b>!</b> new · <b>…</b> in progress · <b>?</b> ready to hand in · <b>✓</b> done.'));
+  setEl('t_full', tr('📱 На весь екран: кнопка <b>⛶</b> у грі. На iPhone — «Поділитися» → «На екран Додому», і запускай з іконки.','📱 Fullscreen: the <b>⛶</b> button in-game. On iPhone — Share → Add to Home Screen, then launch from the icon.'));
+  setEl('w_h1', tr('🎉 Свято врятовано!','🎉 Festival saved!'));
+  const sb=document.getElementById('startBtn'); if(sb) sb.textContent=tr('🌿 Почати пригоду','🌿 Start adventure');
+  const ab=document.getElementById('againBtn'); if(ab) ab.textContent=tr('↺ Зіграти знову','↺ Play again');
+  document.title=tr('Лісові Квести 🦊','Forest Quests 🦊');
+}
+document.querySelectorAll('.langbtn').forEach(b=>b.addEventListener('click',()=>{ LANG=b.dataset.lang; applyLang(); }));
+applyLang();
 document.getElementById('lvDoneBtn').addEventListener('click',()=>loadLevel(curLevel+1));
 window.addEventListener('keydown',e=>{ if(state==='title'&&(e.key==='Enter'||e.key===' ')) startGame(); });
 
