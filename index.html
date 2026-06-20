@@ -485,8 +485,11 @@ function makeEnemy(type,x,y,boss){ const s=ESTATS[type];
     wx:x,wy:y,wt:0}; }
 function spawnGroup(sp,npc){ const cx=sp.rel?npc.x:sp.at[0], cy=sp.rel?npc.y-20:sp.at[1];
   const R=sp.rel?300:60;   // далі від гравця/НПС
-  for(let i=0;i<sp.count;i++){ const a=i/sp.count*6.283+Math.random()*0.6, x=cx+Math.cos(a)*R+(Math.random()-.5)*90, y=cy+Math.sin(a)*R+(Math.random()-.5)*90;
-    enemies.push(makeEnemy(sp.enemy,clamp(x,60,WORLD_W-60),clamp(y,60,WORLD_H-60),sp.boss)); } }
+  for(let i=0;i<sp.count;i++){ let x,y,tries=0;
+    do{ const a=i/sp.count*6.283+Math.random()*1.4, r=R*(0.55+Math.random()*0.7);
+      x=clamp(cx+Math.cos(a)*r,60,WORLD_W-60); y=clamp(cy+Math.sin(a)*r,60,WORLD_H-60); tries++;
+    } while(tileAt(x,y)===2 && tries<40);   // не спавнити у воді
+    enemies.push(makeEnemy(sp.enemy,x,y,sp.boss)); } }
 function spawnAmbient(type,n,minStart){
   let made=0,tries=0;
   while(made<n && tries<700){ tries++;
