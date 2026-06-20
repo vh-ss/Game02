@@ -1263,7 +1263,7 @@ function loadLevel(n){ const cfg=LEVELS[n]; curLevel=n;
   LV.spots[Math.floor(Math.random()*LV.spots.length)].isChild=true;
   recomputeTotal();
   player.x=cfg.start.x; player.y=cfg.start.y; player.hp=player.maxHp; player.iframes=1.2; player.regenT=0;
-  questLogOpen=false; toastT=0; dialog=null; levelQueue=0; state='play'; startTime=performance.now();
+  questLogOpen=false; toastT=0; dialog=null; levelQueue=0; state='play'; // startTime не скидаємо — рахуємо загальний час гри
   showToast(tr('Рівень '+n+': знайди '+cfg.childName+'!','Level '+n+': find '+T(cfg.childName)+'!'));
 }
 function completeLevel(){ if(curLevel>=TOTAL_LEVELS){ winGame(); return; } showLevelDone(); }
